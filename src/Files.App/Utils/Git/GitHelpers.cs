@@ -10,6 +10,7 @@ using System.Net.Http;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using System.Threading;
 
 namespace Files.App.Utils.Git
 {
@@ -510,32 +511,120 @@ namespace Files.App.Utils.Git
 			return false;
 		}
 
-		public static GitItemModel GetGitInformationForItem(Repository repository, string path, bool getStatus = true, bool getCommit = true)
+		private static void DetermineParentPaths(IRepository repo, Commit currentCommit, string currentPath, IDictionary<Commit, string> map, CancellationToken cancellationToken = default)
+		{
+			foreach (var parentCommit in currentCommit.Parents.Where(parentCommit => !map.ContainsKey(parentCommit)))
+			{
+				if (cancellationToken.IsCancellationRequested)
+				{
+					break;
+				}
+
+				map.Add(parentCommit, ParentPath(repo, currentCommit, currentPath, parentCommit, cancellationToken));
+			}
+		}
+
+		private static string ParentPath(IRepository repo, Commit currentCommit, string currentPath, Commit parentCommit, CancellationToken cancellationToken = default)
+		{
+			using var treeChanges = repo.Diff.Compare<TreeChanges>(parentCommit.Tree, currentCommit.Tree);
+			TreeEntryChanges? treeEntryChanges = null;
+			foreach (var change in treeChanges)
+			{
+				if (cancellationToken.IsCancellationRequested)
+				{
+					break;
+				}
+
+				if (change.Path == currentPath)
+				{
+					treeEntryChanges = change;
+				}
+			}
+
+			return treeEntryChanges != null && treeEntryChanges.Status == ChangeKind.Renamed
+				? treeEntryChanges.OldPath
+				: currentPath;
+		}
+
+		public static async Task<GitItemModel> GetGitInformationForItemAsync(Repository repository, string path, bool getStatus = true, bool getCommit = true, CancellationToken cancellationToken = default)
 		{
 			var rootRepoPath = repository.Info.WorkingDirectory;
-			var relativePath = path.Substring(rootRepoPath.Length).Replace('\\', '/');
+			var relativePath = path[rootRepoPath.Length..].Replace('\\', '/');
 
 			Commit? commit = null;
 			if (getCommit)
 			{
-				commit = GetLastCommitForFile(repository, relativePath);
-				//var commit = repository.Commits.QueryBy(relativePath).FirstOrDefault()?.Commit; // Considers renames but slow
+				commit = await Task.Run(() =>
+				{
+					var map = new Dictionary<Commit, string>();
+
+					foreach (var currentCommit in repository.Commits)
+					{
+						if (cancellationToken.IsCancellationRequested)
+						{
+							break;
+						}
+
+						var currentPath = map.Keys.Count > 0 ? map[currentCommit] : relativePath;
+						var currentTreeEntry = currentCommit.Tree[currentPath];
+						if (currentTreeEntry == null)
+							return null;
+
+						var parentCount = currentCommit.Parents.Count();
+						if (parentCount == 0)
+						{
+							return currentCommit;
+						}
+						else
+						{
+							DetermineParentPaths(repository, currentCommit, currentPath, map, cancellationToken);
+
+							if (parentCount != 1)
+							{
+								continue;
+							}
+
+							var parentCommit = currentCommit.Parents.Single();
+							var parentPath = map[parentCommit];
+							var parentTreeEntry = parentCommit.Tree[parentPath];
+
+							if (parentTreeEntry == null ||
+								parentTreeEntry.Target.Id != currentTreeEntry.Target.Id ||
+								parentPath != currentPath)
+							{
+								return currentCommit;
+							}
+						}
+					}
+
+					return null;
+				}, cancellationToken);
 			}
 
 			ChangeKind? changeKind = null;
 			string? changeKindHumanized = null;
 			if (getStatus)
 			{
-				changeKind = ChangeKind.Unmodified;
-				//foreach (TreeEntryChanges c in repository.Diff.Compare<TreeChanges>())
-				foreach (TreeEntryChanges c in repository.Diff.Compare<TreeChanges>(repository.Commits.FirstOrDefault()?.Tree, DiffTargets.Index | DiffTargets.WorkingDirectory))
+				changeKind = await Task.Run(() =>
 				{
-					if (c.Path.StartsWith(relativePath))
+					var result = ChangeKind.Unmodified;
+					//foreach (TreeEntryChanges c in repository.Diff.Compare<TreeChanges>())
+					foreach (TreeEntryChanges c in repository.Diff.Compare<TreeChanges>(repository.Commits.FirstOrDefault()?.Tree, DiffTargets.Index | DiffTargets.WorkingDirectory))
 					{
-						changeKind = c.Status;
-						break;
+						if (cancellationToken.IsCancellationRequested)
+						{
+							break;
+						}
+
+						if (c.Path.StartsWith(relativePath))
+						{
+							result = c.Status;
+							break;
+						}
 					}
-				}
+
+					return result;
+				}, cancellationToken);
 
 				if (changeKind is not ChangeKind.Ignored)
 				{
@@ -604,40 +693,6 @@ namespace Files.App.Utils.Git
 			{
 				return null;
 			}
-		}
-
-		private static Commit? GetLastCommitForFile(Repository repository, string currentPath)
-		{
-			foreach (var currentCommit in repository.Commits)
-			{
-				var currentTreeEntry = currentCommit.Tree[currentPath];
-				if (currentTreeEntry == null)
-					return null;
-
-				var parentCount = currentCommit.Parents.Take(2).Count();
-				if (parentCount == 0)
-				{
-					return currentCommit;
-				}
-				else if (parentCount == 1)
-				{
-					var parentCommit = currentCommit.Parents.Single();
-
-					// Does not consider renames
-					var parentPath = currentPath;
-
-					var parentTreeEntry = parentCommit.Tree[parentPath];
-
-					if (parentTreeEntry == null ||
-						parentTreeEntry.Target.Id != currentTreeEntry.Target.Id ||
-						parentPath != currentPath)
-					{
-						return currentCommit;
-					}
-				}
-			}
-
-			return null;
 		}
 
 		private static void CheckoutRemoteBranch(Repository repository, Branch branch)

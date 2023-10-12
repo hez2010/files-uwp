@@ -1266,10 +1266,10 @@ namespace Files.App.Data.Models
 
 				await SafetyExtensions.IgnoreExceptions(() =>
 				{
-					return dispatcherQueue.EnqueueOrInvokeAsync(() =>
+					return dispatcherQueue.EnqueueOrInvokeAsync(async () =>
 					{
 						var repo = new Repository(repoPath);
-						GitItemModel gitItemModel = GitHelpers.GetGitInformationForItem(repo, gitItem.ItemPath, getStatus, getCommit);
+						GitItemModel gitItemModel = await GitHelpers.GetGitInformationForItemAsync(repo, gitItem.ItemPath, getStatus, getCommit, cts.Token);
 
 						if (getStatus)
 						{

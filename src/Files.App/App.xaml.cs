@@ -4,6 +4,7 @@
 using CommunityToolkit.WinUI.Helpers;
 using CommunityToolkit.WinUI.Notifications;
 using Files.App.Helpers;
+using Files.App.Server;
 using Files.App.Services.DateTimeFormatter;
 using Files.App.Services.Settings;
 using Files.App.Storage.FtpStorage;
@@ -186,6 +187,10 @@ namespace Files.App
 				if (condition)
 					await task;
 			}
+
+			var remoteThing = new RemoteThing();
+			var result = await remoteThing.RemAsync(5, 4);
+			Debug.WriteLine(result);
 		}
 
 		private static async Task CheckForRequiredUpdatesAsync()

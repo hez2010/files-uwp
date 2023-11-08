@@ -25,15 +25,17 @@
         <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <Configurations>Debug;Release;Stable;Preview;Store</Configurations>
-        <TieredCompilation>true</TieredCompilation>
-        <TieredPgo>true</TieredPgo>
+        <CsWinRTIncludes>Files.App.Server</CsWinRTIncludes>
+        <CsWinRTIncludesPrivate>Files.App.Server</CsWinRTIncludesPrivate>
     </PropertyGroup>
 
     <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
         <DefineConstants>TRACE;DEBUG;NETFX_CORE;DISABLE_XAML_GENERATED_MAIN</DefineConstants>
+        <WinMdConfiguration>Debug</WinMdConfiguration>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Configuration)' != 'Debug'">
         <DefineConstants>TRACE;RELEASE;NETFX_CORE;DISABLE_XAML_GENERATED_MAIN</DefineConstants>
+        <WinMdConfiguration>Release</WinMdConfiguration>
         <Optimize>true</Optimize>
     </PropertyGroup>
 
@@ -64,6 +66,10 @@
         <Content Update="Assets\FilesOpenDialog\Files.App.Launcher.exe">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Content>
+        <CsWinRTInputs Include="..\Files.App.Server.Metadata\bin\$(Platform)\$(WinMdConfiguration)\*.winmd">
+            <Name>%(Filename)</Name>
+            <IsWinMDFile>true</IsWinMDFile>
+        </CsWinRTInputs>
     </ItemGroup>
 
     <ItemGroup>
@@ -98,6 +104,7 @@
         <PackageReference Include="Vanara.Windows.Shell" Version="3.4.17" />
         <PackageReference Include="Microsoft.Management.Infrastructure" Version="3.0.0" />
         <PackageReference Include="Microsoft.Management.Infrastructure.Runtime.Win" Version="3.0.0" />
+        <PackageReference Include="Microsoft.Windows.CsWinRT" Version="2.0.4" />
     </ItemGroup>
 
     <ItemGroup>

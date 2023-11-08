@@ -1,0 +1,7 @@
+﻿namespace Files.App.Server
+{
+    runtimeclass RemoteThing : [default] Files.App.Server.Interfaces.IRemoteThing
+    {
+        RemoteThing();
+    }
+}

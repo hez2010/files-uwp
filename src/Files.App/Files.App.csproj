@@ -25,8 +25,7 @@
         <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <Configurations>Debug;Release;Stable;Preview;Store</Configurations>
-        <CsWinRTIncludes>Files.App.Server</CsWinRTIncludes>
-        <CsWinRTIncludesPrivate>Files.App.Server</CsWinRTIncludesPrivate>
+        <CsWinRTIncludes>Files.Server</CsWinRTIncludes>
     </PropertyGroup>
 
     <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
@@ -66,7 +65,7 @@
         <Content Update="Assets\FilesOpenDialog\Files.App.Launcher.exe">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Content>
-        <CsWinRTInputs Include="..\Files.App.Server.Metadata\bin\$(Platform)\$(WinMdConfiguration)\*.winmd">
+        <CsWinRTInputs Include="..\Files.Server.Metadata\bin\$(Platform)\$(WinMdConfiguration)\*.winmd">
             <Name>%(Filename)</Name>
             <IsWinMDFile>true</IsWinMDFile>
         </CsWinRTInputs>

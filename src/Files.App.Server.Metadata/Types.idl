@@ -1,7 +1,0 @@
-﻿namespace Files.App.Server
-{
-    runtimeclass FileOperations : [default] Files.App.Server.Interfaces.IFileOperations
-    {
-        FileOperations();
-    }
-}

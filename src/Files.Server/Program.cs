@@ -1,4 +1,4 @@
-﻿using Files.App.Server.Interfaces;
+﻿using Files.Server.Interfaces;
 using Shmuelie.WinRTServer;
 using System;
 using System.Runtime.InteropServices;
@@ -6,7 +6,7 @@ using System.Runtime.InteropServices.WindowsRuntime;
 using System.Threading.Tasks;
 using Windows.Foundation;
 
-namespace Files.App.Server;
+namespace Files.Server;
 
 class Program
 {

@@ -1,6 +1,6 @@
 ﻿using Windows.Foundation;
 
-namespace Files.App.Server.Interfaces;
+namespace Files.Server.Interfaces;
 
 public sealed class ProgressData
 {

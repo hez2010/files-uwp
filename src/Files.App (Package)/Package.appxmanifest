@@ -160,9 +160,9 @@
         </Extension>
         <Extension Category="windows.activatableClass.outOfProcessServer">
             <OutOfProcessServer ServerName="Files.App.Server" uap5:IdentityType="activateAsPackage" uap5:RunFullTrust="true">
-                <Path>Files.App.Server\Files.App.Server.exe</Path>
+                <Path>Files.App.Server\Files.Server.exe</Path>
                 <Instancing>singleInstance</Instancing>
-                <ActivatableClass ActivatableClassId="Files.App.Server.RemoteThing" />
+                <ActivatableClass ActivatableClassId="Files.App.Server.FileOperations" />
             </OutOfProcessServer>
         </Extension>
     </Extensions>

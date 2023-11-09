@@ -12,6 +12,7 @@
         <LangVersion>11</LangVersion>
         <OutputType>WinExe</OutputType>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <AssemblyName>Files.Server</AssemblyName>
     </PropertyGroup>
     <ItemGroup>
         <PackageReference Include="Microsoft.Windows.SDK.Contracts" Version="10.0.22621.2428" />

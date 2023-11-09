@@ -14,21 +14,24 @@ class Program
 	{
 		await using (WinRtServer server = new WinRtServer())
 		{
-			server.RegisterClass<RemoteThing>();
+			server.RegisterClass<FileOperations>();
 			server.Start();
 			await server.WaitForFirstObjectAsync();
 		}
 	}
 }
 
-public sealed class RemoteThing : IRemoteThing
+public sealed class FileOperations : IFileOperations
 {
-	public IAsyncOperation<int> RemAsync(int a, int b)
+	public IAsyncOperation<Result> RunAsync(int a, int b, TypedEventHandler<IFileOperations, ProgressData> progress)
 	{
 		return AsyncInfo.Run(async c =>
 		{
-			await Task.Delay(1000);
-			return Math.DivRem(a, b, out var _);
+			for (var i = a; i < b; i++)
+			{
+				progress(this, new(i));
+			}
+			return Result.Success;
 		});
 	}
 }

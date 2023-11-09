@@ -27,6 +27,9 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Files.App.Launcher", "src\Files.App.Launcher\Files.App.Launcher.vcxproj", "{25FD5045-6D4C-4DD0-B3AC-613AB59CBB07}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Files.App", "src\Files.App\Files.App.csproj", "{6F431D82-A5FF-4833-B5E4-702E1E523126}"
+	ProjectSection(ProjectDependencies) = postProject
+		{6E162C5F-F2B3-4BB4-82AC-A5E72D293A64} = {6E162C5F-F2B3-4BB4-82AC-A5E72D293A64}
+	EndProjectSection
 EndProject
 Project("{C7167F0D-BC9F-4E6E-AFE1-012C56B48DB5}") = "Files.Package", "src\Files.App (Package)\Files.Package.wapproj", "{8F60FD8E-1921-47D6-97B0-D26D7B3A4999}"
 EndProject
@@ -34,7 +37,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Files.Core.SourceGenerator"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Files.App.Server", "src\Files.App.Server\Files.App.Server.csproj", "{91AA7488-D821-4974-9C75-6C8ED1B893ED}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Files.App.Server.Interfaces", "src\Files.App.Server.Interfaces\Files.App.Server.Interfaces.csproj", "{1F13E49F-9EED-4150-86E9-4FE719C3ED49}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Files.App.Server.Interfaces", "src\Files.App.Server.Interfaces\Files.App.Server.Interfaces.csproj", "{1F13E49F-9EED-4150-86E9-4FE719C3ED49}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Files.App.Server.Metadata", "src\Files.App.Server.Metadata\Files.App.Server.Metadata.vcxproj", "{6E162C5F-F2B3-4BB4-82AC-A5E72D293A64}"
 EndProject

@@ -215,112 +215,114 @@ namespace Files.App.Utils.Signatures
 			signChain.Clear();
 
 			var cert_store_prov_system = (PCSTR)(byte*)10;
-			ReadOnlySpan<char> root = "Root";
-			var hSystemStore = PInvoke.CertOpenStore(
-				cert_store_prov_system,
-				ENCODING,
-				HCRYPTPROV_LEGACY.Null,
-				(CERT_OPEN_STORE_FLAGS)CERT_SYSTEM_STORE_CURRENT_USER,
-				Unsafe.AsPointer(ref MemoryMarshal.GetReference(root))
-			); 
-			if (hSystemStore == IntPtr.Zero)
-				return false;
-
-			void* hAuthCryptMsg = null;
-			var result = TryGetSignerInfo(
-				fileName,
-				out hAuthCryptMsg,
-				out authSignData.hCertStoreHandle,
-				out authSignData.pSignerInfo,
-				out authSignData.dwObjSize
-			);
-
-			if (hAuthCryptMsg is not null)
+			fixed (char* pRoot = "Root")
 			{
-				PInvoke.CryptMsgClose(hAuthCryptMsg);
-				hAuthCryptMsg = null;
-			}
+				var hSystemStore = PInvoke.CertOpenStore(
+					cert_store_prov_system,
+					ENCODING,
+					HCRYPTPROV_LEGACY.Null,
+					(CERT_OPEN_STORE_FLAGS)CERT_SYSTEM_STORE_CURRENT_USER,
+					(void*)pRoot
+				); 
+				if (hSystemStore == IntPtr.Zero)
+					return false;
 
-			if (!result)
-			{
-				if (authSignData.hCertStoreHandle != IntPtr.Zero)
-					PInvoke.CertCloseStore(authSignData.hCertStoreHandle, 0);
+				void* hAuthCryptMsg = null;
+				var result = TryGetSignerInfo(
+					fileName,
+					out hAuthCryptMsg,
+					out authSignData.hCertStoreHandle,
+					out authSignData.pSignerInfo,
+					out authSignData.dwObjSize
+					);
 
-				PInvoke.CertCloseStore(hSystemStore, 0);
-				return false;
-			}
-
-			signDataChain.Add(authSignData);
-			GetNestedSignerInfo(ref authSignData, signDataChain);
-
-			for (var i = 0; i < signDataChain.Count; i++)
-			{
-				if (ct.IsCancellationRequested)
+				if (hAuthCryptMsg is not null)
 				{
+					PInvoke.CryptMsgClose(hAuthCryptMsg);
+					hAuthCryptMsg = null;
+				}
+
+				if (!result)
+				{
+					if (authSignData.hCertStoreHandle != IntPtr.Zero)
+						PInvoke.CertCloseStore(authSignData.hCertStoreHandle, 0);
+
 					PInvoke.CertCloseStore(hSystemStore, 0);
 					return false;
 				}
 
-				CERT_CONTEXT* pCurrContext = null;
-				CMSG_SIGNER_INFO* pCounterSigner = null;
-				var signNode = new SignNodeInfo();
+				signDataChain.Add(authSignData);
+					GetNestedSignerInfo(ref authSignData, signDataChain);
 
-				GetCounterSignerInfo(signDataChain[i].pSignerInfo, &pCounterSigner);
-				if (pCounterSigner is not null)
-					GetCounterSignerData(pCounterSigner, signNode.CounterSign);
-				else
-					GetGeneralizedTimeStamp(signDataChain[i].pSignerInfo, signNode.CounterSign);
-
-				var pszObjId = signDataChain[i].pSignerInfo->HashAlgorithm.pszObjId;
-				var szObjId = new string((sbyte*)(byte*)pszObjId);
-				CalculateDigestAlgorithm(szObjId, signNode);
-				(_, signNode.Version) = CalculateSignVersion(signDataChain[i].pSignerInfo->dwVersion);
-
-
-				var pIssuer = &(signDataChain[i].pSignerInfo->Issuer);
-				pCurrContext = PInvoke.CertFindCertificateInStore(
-					signDataChain[i].hCertStoreHandle,
-					ENCODING,
-					0,
-					CERT_FIND_FLAGS.CERT_FIND_ISSUER_NAME,
-					pIssuer,
-					null
-				);
-
-				result = pCurrContext is not null;
-				while (result)
+				for (var i = 0; i < signDataChain.Count; i++)
 				{
-					var pOrigContext = pCurrContext;
-					result = GetSignerSignatureInfo(
-						hSystemStore,
+					if (ct.IsCancellationRequested)
+					{
+						PInvoke.CertCloseStore(hSystemStore, 0);
+						return false;
+					}
+
+					CERT_CONTEXT* pCurrContext = null;
+					CMSG_SIGNER_INFO* pCounterSigner = null;
+					var signNode = new SignNodeInfo();
+
+					GetCounterSignerInfo(signDataChain[i].pSignerInfo, &pCounterSigner);
+					if (pCounterSigner is not null)
+						GetCounterSignerData(pCounterSigner, signNode.CounterSign);
+					else
+						GetGeneralizedTimeStamp(signDataChain[i].pSignerInfo, signNode.CounterSign);
+
+						var pszObjId = signDataChain[i].pSignerInfo->HashAlgorithm.pszObjId;
+					var szObjId = new string((sbyte*)(byte*)pszObjId);
+					CalculateDigestAlgorithm(szObjId, signNode);
+					(_, signNode.Version) = CalculateSignVersion(signDataChain[i].pSignerInfo->dwVersion);
+
+
+					var pIssuer = &(signDataChain[i].pSignerInfo->Issuer);
+					pCurrContext = PInvoke.CertFindCertificateInStore(
 						signDataChain[i].hCertStoreHandle,
-						pOrigContext,
-						ref pCurrContext,
-						signNode
+						ENCODING,
+						0,
+						CERT_FIND_FLAGS.CERT_FIND_ISSUER_NAME,
+						pIssuer,
+						null
 					);
-					PInvoke.CertFreeCertificateContext(pOrigContext);
+
+					result = pCurrContext is not null;
+					while (result)
+					{
+						var pOrigContext = pCurrContext;
+						result = GetSignerSignatureInfo(
+							hSystemStore,
+							signDataChain[i].hCertStoreHandle,
+							pOrigContext,
+							ref pCurrContext,
+							signNode
+						);
+						PInvoke.CertFreeCertificateContext(pOrigContext);
+					}
+
+					if (pCurrContext is not null)
+						PInvoke.CertFreeCertificateContext(pCurrContext);
+
+					if (pCounterSigner is not null)
+						NativeMemory.Free(pCounterSigner);
+
+					if (signDataChain[i].pSignerInfo is not null)
+						NativeMemory.Free(signDataChain[i].pSignerInfo);
+
+					if (!signDataChain[i].hCertStoreHandle.IsNull)
+						PInvoke.CertCloseStore(signDataChain[i].hCertStoreHandle, 0);
+
+					succeded = true;
+					signNode.IsValid = VerifyySignature(fileName);
+					signNode.Index = i;
+					signChain.Add(signNode);
 				}
 
-				if (pCurrContext is not null)
-					PInvoke.CertFreeCertificateContext(pCurrContext);
-
-				if (pCounterSigner is not null)
-					NativeMemory.Free(pCounterSigner);
-
-				if (signDataChain[i].pSignerInfo is not null)
-					NativeMemory.Free(signDataChain[i].pSignerInfo);
-
-				if (!signDataChain[i].hCertStoreHandle.IsNull)
-					PInvoke.CertCloseStore(signDataChain[i].hCertStoreHandle, 0);
-
-				succeded = true;
-				signNode.IsValid = VerifyySignature(fileName);
-				signNode.Index = i;
-				signChain.Add(signNode);
+				PInvoke.CertCloseStore(hSystemStore, 0);
+				return succeded;
 			}
-
-			PInvoke.CertCloseStore(hSystemStore, 0);
-			return succeded;
 		}
 
 		private unsafe static bool VerifyySignature(string certPath)

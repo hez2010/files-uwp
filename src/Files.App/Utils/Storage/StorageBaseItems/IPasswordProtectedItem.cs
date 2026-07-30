@@ -10,7 +10,7 @@ namespace Files.App.Utils.Storage
 	{
 		StorageCredential Credentials { get; set; }
 
-		Func<IPasswordProtectedItem, Task<StorageCredential>> PasswordRequestedCallback { get; set; }
+		Func<IPasswordProtectedItem, Task<StorageCredential>>? PasswordRequestedCallback { get; set; }
 
 		async Task<TOut> RetryWithCredentialsAsync<TOut>(Func<Task<TOut>> func, Exception exception)
 		{

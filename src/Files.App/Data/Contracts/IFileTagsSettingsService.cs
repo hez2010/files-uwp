@@ -5,13 +5,13 @@ namespace Files.App.Data.Contracts
 {
 	public interface IFileTagsSettingsService : IBaseSettingsService
 	{
-		event EventHandler OnSettingImportedEvent;
+		event EventHandler? OnSettingImportedEvent;
 
-		event EventHandler OnTagsUpdated;
+		event EventHandler? OnTagsUpdated;
 
 		IList<TagViewModel> FileTagList { get; set; }
 
-		TagViewModel GetTagById(string uid);
+		TagViewModel? GetTagById(string uid);
 
 		IList<TagViewModel>? GetTagsByIds(string[] uids);
 

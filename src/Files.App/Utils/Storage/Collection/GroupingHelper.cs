@@ -7,7 +7,7 @@ namespace Files.App.Utils.Storage
 {
 	public static class GroupingHelper
 	{
-		private static readonly IDateTimeFormatter dateTimeFormatter = Ioc.Default.GetService<IDateTimeFormatter>();
+		private static readonly IDateTimeFormatter dateTimeFormatter = Ioc.Default.GetRequiredService<IDateTimeFormatter>();
 
 		public static Func<ListedItem, string> GetItemGroupKeySelector(GroupOption option, GroupByDateUnit unit)
 		{
@@ -20,14 +20,14 @@ namespace Files.App.Utils.Storage
 				GroupOption.FileType => x => x.PrimaryItemAttribute == StorageItemTypes.Folder && !x.IsShortcut ? x.ItemType : x.FileExtension?.ToLowerInvariant() ?? " ",
 				GroupOption.SyncStatus => x => x.SyncStatusString,
 				GroupOption.FileTag => x => x.FileTags?.FirstOrDefault() ?? "Untagged",
-				GroupOption.OriginalFolder => x => (x as RecycleBinItem)?.ItemOriginalFolder,
+				GroupOption.OriginalFolder => x => (x as RecycleBinItem)?.ItemOriginalFolder ?? string.Empty,
 				GroupOption.DateDeleted => x => dateTimeFormatter.ToTimeSpanLabel((x as RecycleBinItem)?.ItemDateDeletedReal ?? DateTimeOffset.Now, unit).Text,
 				GroupOption.FolderPath => x => PathNormalization.GetParentDir(x.ItemPath.TrimPath()),
-				_ => null,
+				_ => throw new ArgumentOutOfRangeException(nameof(option)),
 			};
 		}
 
-		public static (Action<GroupedCollection<ListedItem>>, Action<GroupedCollection<ListedItem>>) GetGroupInfoSelector(GroupOption option, GroupByDateUnit unit)
+		public static (Action<GroupedCollection<ListedItem>>?, Action<GroupedCollection<ListedItem>>?) GetGroupInfoSelector(GroupOption option, GroupByDateUnit unit)
 		{
 			return option switch
 			{
@@ -85,12 +85,12 @@ namespace Files.App.Utils.Storage
 					ListedItem first = x.First();
 					x.Model.ShowCountTextBelow = true;
 					x.Model.Text = first.SyncStatusString;
-					x.Model.Icon = first?.SyncStatusUI.Glyph;
+					x.Model.Icon = first.SyncStatusUI.Glyph ?? string.Empty;
 				}, null),
 
 				GroupOption.FileTag => (x =>
 				{
-					ListedItem first = x.FirstOrDefault();
+					ListedItem first = x.First();
 					x.Model.ShowCountTextBelow = true;
 					x.Model.Text = first.FileTagsUI?.FirstOrDefault()?.Name ?? Strings.Untagged.GetLocalizedResource();
 					//x.Model.Icon = first.FileTagsUI?.FirstOrDefault()?.Color;
@@ -99,9 +99,9 @@ namespace Files.App.Utils.Storage
 				GroupOption.DateDeleted => (x =>
 					{
 						var vals = dateTimeFormatter.ToTimeSpanLabel((x.First() as RecycleBinItem)?.ItemDateDeletedReal ?? DateTimeOffset.Now, unit);
-						x.Model.Subtext = vals?.Text;
-						x.Model.Icon = vals?.Glyph;
-						x.Model.SortIndexOverride = vals?.Index ?? 0;
+						x.Model.Subtext = vals.Text;
+						x.Model.Icon = vals.Glyph;
+						x.Model.SortIndexOverride = vals.Index;
 					}, null),
 
 				GroupOption.OriginalFolder => (x =>
@@ -110,8 +110,8 @@ namespace Files.App.Utils.Storage
 						var model = x.Model;
 						model.ShowCountTextBelow = true;
 
-						model.Text = (first as RecycleBinItem)?.ItemOriginalFolderName;
-						model.Subtext = (first as RecycleBinItem)?.ItemOriginalFolder;
+						model.Text = (first as RecycleBinItem)?.ItemOriginalFolderName ?? string.Empty;
+						model.Subtext = (first as RecycleBinItem)?.ItemOriginalFolder ?? string.Empty;
 					}, null),
 
 				GroupOption.FolderPath => (x =>
@@ -168,8 +168,6 @@ namespace Files.App.Utils.Storage
 
 		private static string GetFolderName(string path)
 		{
-			if (path == null)
-				return null;
 			return path.Substring(path.LastIndexOf('\\') + 1);
 		}
 	}

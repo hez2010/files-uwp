@@ -7,7 +7,7 @@ namespace Files.App.Data.EventArguments
 	{
 		public bool FocusOnNavigation { get; set; } = false;
 
-		public string? NavPathParam { get; set; } = null;
+		public string? NavPathParam { get; set => field = value is null ? null : Constants.UserEnvironmentPaths.ShellPlaces.GetValueOrDefault(value, value); } = null;
 
 		public IShellPage? AssociatedTabInstance { get; set; }
 

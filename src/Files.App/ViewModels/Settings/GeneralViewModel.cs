@@ -112,44 +112,58 @@ namespace Files.App.ViewModels.Settings
 			SelectedShellPaneArrangementType = ShellPaneArrangementTypes[UserSettingsService.GeneralSettingsService.ShellPaneArrangementOption];
 
 			InitStartupSettingsRecentFoldersFlyout();
-			UserSettingsService.OnSettingChangedEvent += OnSharedSettingChanged;
 		}
+
+		internal void StartListening()
+		{
+			UserSettingsService.OnSettingChangedEvent -= OnSharedSettingChanged;
+			UserSettingsService.OnSettingChangedEvent += OnSharedSettingChanged;
+			RefreshSettings();
+		}
+
+		internal void StopListening() => UserSettingsService.OnSettingChangedEvent -= OnSharedSettingChanged;
 
 		private void OnSharedSettingChanged(object? sender, SettingChangedEventArgs e)
 		{
-			if (e.NewValue is not JsonElement)
-				return;
+			if (e.NewValue is JsonElement)
+				RefreshSettings(e.SettingName);
+		}
 
+		private void RefreshSettings(string? name = null)
+		{
 			var settings = UserSettingsService.GeneralSettingsService;
-			switch (e.SettingName)
+			if (name is null or nameof(IGeneralSettingsService.DateTimeFormat))
 			{
-				case nameof(IGeneralSettingsService.DateTimeFormat):
-					SetProperty(ref selectedDateTimeFormatIndex, (int)settings.DateTimeFormat, nameof(SelectedDateTimeFormatIndex));
-					OnPropertyChanged(nameof(DateFormatSample));
-					break;
-				case nameof(IGeneralSettingsService.ShellPaneArrangementOption):
-					SetProperty(ref selectedShellPaneArrangementType, ShellPaneArrangementTypes[settings.ShellPaneArrangementOption], nameof(SelectedShellPaneArrangementType));
-					break;
-				case nameof(IGeneralSettingsService.ReverseTabScrollDirection):
-					OnPropertyChanged(nameof(SelectedTabScrollDirectionIndex));
-					break;
-				case nameof(IGeneralSettingsService.OpenNewTabOnStartup):
-				case nameof(IGeneralSettingsService.OpenSpecificPageOnStartup):
-				case nameof(IGeneralSettingsService.ContinueLastSessionOnStartUp):
-					OnPropertyChanged(nameof(OpenNewTabPageOnStartup));
-					OnPropertyChanged(nameof(OpenASpecificPageOnStartup));
-					OnPropertyChanged(nameof(SelectedStartupSettingIndex));
-					break;
-				case nameof(IGeneralSettingsService.TabsOnStartupList):
+				SetProperty(ref selectedDateTimeFormatIndex, (int)settings.DateTimeFormat, nameof(SelectedDateTimeFormatIndex));
+				OnPropertyChanged(nameof(DateFormatSample));
+			}
+			if (name is null or nameof(IGeneralSettingsService.ShellPaneArrangementOption))
+			{
+				SetProperty(ref selectedShellPaneArrangementType, ShellPaneArrangementTypes[settings.ShellPaneArrangementOption], nameof(SelectedShellPaneArrangementType));
+			}
+			if (name is null or nameof(IGeneralSettingsService.ReverseTabScrollDirection))
+			{
+				OnPropertyChanged(nameof(SelectedTabScrollDirectionIndex));
+			}
+			if (name is null or nameof(IGeneralSettingsService.OpenNewTabOnStartup) or nameof(IGeneralSettingsService.OpenSpecificPageOnStartup) or nameof(IGeneralSettingsService.ContinueLastSessionOnStartUp))
+			{
+				OnPropertyChanged(nameof(OpenNewTabPageOnStartup));
+				OnPropertyChanged(nameof(OpenASpecificPageOnStartup));
+				OnPropertyChanged(nameof(SelectedStartupSettingIndex));
+			}
+			if (name is null or nameof(IGeneralSettingsService.TabsOnStartupList))
+			{
+				if (name is not null || !PagesOnStartupList.Select(page => page.Path).SequenceEqual(settings.TabsOnStartupList ?? []))
+				{
 					PagesOnStartupList.CollectionChanged -= PagesOnStartupList_CollectionChanged;
 					PagesOnStartupList.Clear();
 					foreach (var path in settings.TabsOnStartupList ?? [])
 						PagesOnStartupList.Add(new PageOnStartupViewModel(path));
 					PagesOnStartupList.CollectionChanged += PagesOnStartupList_CollectionChanged;
 					SelectedPageIndex = -1;
-					break;
+				}
 			}
-			OnPropertyChanged(e.SettingName);
+			OnPropertyChanged(name ?? string.Empty);
 		}
 
 		private async void DoRestartAsync()

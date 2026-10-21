@@ -69,11 +69,20 @@ namespace Files.App.ViewModels.Settings
 			RestoreDefaultsCommand = new RelayCommand(ExecuteRestoreDefaultsCommand);
 			SaveCommand = new RelayCommand<ModifiableActionItem>(ExecuteSaveCommand);
 			DeleteCommand = new RelayCommand<ModifiableActionItem>(ExecuteDeleteCommand);
-			Ioc.Default.GetRequiredService<IUserSettingsService>().OnSettingChangedEvent += async (_, e) =>
-			{
-				if (e.NewValue is JsonElement && e.SettingName == nameof(IActionsSettingsService.ActionsV2))
-					await SafetyExtensions.IgnoreExceptions(ExecuteLoadAllActionsCommand, App.Logger);
-			};
+		}
+
+		internal void StartListening()
+		{
+			Ioc.Default.GetRequiredService<IUserSettingsService>().OnSettingChangedEvent -= OnSharedSettingChanged;
+			Ioc.Default.GetRequiredService<IUserSettingsService>().OnSettingChangedEvent += OnSharedSettingChanged;
+		}
+
+		internal void StopListening() => Ioc.Default.GetRequiredService<IUserSettingsService>().OnSettingChangedEvent -= OnSharedSettingChanged;
+
+		private async void OnSharedSettingChanged(object? sender, SettingChangedEventArgs e)
+		{
+			if (e.NewValue is JsonElement && e.SettingName == nameof(IActionsSettingsService.ActionsV2))
+				await SafetyExtensions.IgnoreExceptions(ExecuteLoadAllActionsCommand, App.Logger);
 		}
 
 		// Command methods

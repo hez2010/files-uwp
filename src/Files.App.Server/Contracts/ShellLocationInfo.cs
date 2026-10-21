@@ -9,9 +9,9 @@ public sealed partial class ShellLocationInfo
 	public string Identity { get; }
 	public string Name { get; }
 	public byte[] Pidl { get; }
-	public DateTimeOffset Modified { get; }
+	public DateTimeOffset? Modified { get; }
 
-	internal ShellLocationInfo(string path, string identity, string name, byte[] pidl, DateTimeOffset modified)
+	internal ShellLocationInfo(string path, string identity, string name, byte[] pidl, DateTimeOffset? modified)
 	{
 		Path = path;
 		Identity = identity;

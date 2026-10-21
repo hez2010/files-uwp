@@ -5,5 +5,15 @@ namespace Files.App.Server;
 
 internal static class StartupServices
 {
-	internal static Task InitializeAsync() => InitializationCache.InitializeAsync();
+	internal static async Task InitializeAsync()
+	{
+		CatalogWatchers.Initialize();
+		await Task.WhenAll(
+			SafetyExtensions.IgnoreExceptions(InitializationCache.InitializeAsync, Program.Logger));
+	}
+
+	internal static void Stop()
+	{
+		CatalogWatchers.Dispose();
+	}
 }

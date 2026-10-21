@@ -77,18 +77,19 @@ internal sealed class ServerSettingsDatabase : IJsonSettingsDatabase
 		if (values is null)
 			return false;
 		var changed = Server.AppService.ImportSettings(fileName, SettingsValueCodec.EncodeObject(values));
+		var flushed = FlushSettings();
 		var fresh = ReadValues();
 		lock (gate)
 		{
 			cache = fresh;
 			cacheVersion++;
 		}
-		return changed;
+		return changed && flushed;
 	}
 
 	public IDictionary<string, JsonElement> ExportSettings() => ReadValues();
 
-	public bool FlushSettings() => true;
+	public bool FlushSettings() => Server.AppService.FlushSettings(fileName);
 
 	private JsonTypeInfo<T?> GetTypeInfo<T>() => context.GetTypeInfo(typeof(T)) as JsonTypeInfo<T?>
 		?? throw new InvalidOperationException($"JSON serialization metadata is missing for {typeof(T)}.");

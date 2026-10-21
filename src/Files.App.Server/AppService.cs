@@ -65,6 +65,10 @@ public sealed partial class AppService : IDisposable
 
 	public static bool RemoveSetting(string fileName, string key) => SettingsStore.Get(fileName).Set(key, [], true);
 
+	public static bool FlushSettings(string fileName) => SettingsStore.Get(fileName).Flush();
+
+	public static bool FlushAllSettings() => SettingsStore.FlushAll();
+
 	public static bool ImportSettings(string fileName, [ReadOnlyArray] SettingsValue[] values) => SettingsStore.Get(fileName).Import(values);
 
 	public static void BeginUpdate() => ServerHost.BeginUpdate();

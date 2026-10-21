@@ -148,6 +148,8 @@ namespace Files.App.Services
 		{
 			// Save the updated tab list before installing the update
 			AppLifecycleHelper.SaveSessionTabs();
+			if (!Server.AppService.FlushAllSettings())
+				throw new System.IO.IOException("Could not save settings before installing the update.");
 
 			var serverUpdateStarted = SafetyExtensions.IgnoreExceptions(Server.AppService.BeginUpdate, App.Logger);
 

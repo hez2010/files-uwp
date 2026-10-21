@@ -10,7 +10,7 @@ internal sealed class SettingsStore
 {
 	private static readonly SettingsStore user = new("user_settings.json");
 	private static readonly SettingsStore tags = new("filetags.json");
-	private readonly Lock gate = new();
+	private readonly object gate = new();
 	private readonly string fileName;
 	private readonly string path;
 	private Dictionary<string, JsonElement>? values;
@@ -19,6 +19,11 @@ internal sealed class SettingsStore
 	internal static event Action<string>? Changed;
 	private long length;
 	private readonly FileSystemWatcher watcher;
+	private readonly List<Func<Dictionary<string, JsonElement>, bool>> pendingWrites = [];
+	private bool writing;
+	private long version;
+	private long persistedVersion;
+	private long writeFailures;
 
 	private SettingsStore(string fileName)
 	{
@@ -55,36 +60,42 @@ internal sealed class SettingsStore
 		ServerEvents.Notify(ServerChangeNames.Settings(fileName));
 	}
 
-	private Dictionary<string, JsonElement> Read(bool fresh = false)
+	private Dictionary<string, JsonElement> Read()
 	{
 		var file = new FileInfo(path);
-		if (!fresh && !invalidated && values is not null && file.LastWriteTimeUtc == lastWrite && (file.Exists ? file.Length : 0) == length)
+		if (!invalidated && values is not null && file.LastWriteTimeUtc == lastWrite && (file.Exists ? file.Length : 0) == length)
 			return values;
-		var result = new Dictionary<string, JsonElement>(StringComparer.Ordinal);
-		if (file.Exists)
-		{
-			using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
-			if (stream.Length > 0)
-			{
-				try
-				{
-					using var document = JsonDocument.Parse(stream);
-					if (document.RootElement.ValueKind == JsonValueKind.Object)
-						foreach (var property in document.RootElement.EnumerateObject())
-							result[property.Name] = property.Value.Clone();
-				}
-				catch (JsonException ex)
-				{
-					Program.Logger.LogWarning(ex, "Could not read settings.");
-					return values ?? result;
-				}
-			}
-		}
+		var result = ReadFile(values ?? []);
+		foreach (var change in pendingWrites)
+			change(result);
 		values = result;
 		invalidated = false;
 		lastWrite = file.LastWriteTimeUtc;
 		length = file.Exists ? file.Length : 0;
 		return result;
+	}
+
+	private Dictionary<string, JsonElement> ReadFile(Dictionary<string, JsonElement> fallback)
+	{
+		var result = new Dictionary<string, JsonElement>(StringComparer.Ordinal);
+		if (!File.Exists(path))
+			return result;
+		using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+		if (stream.Length == 0)
+			return result;
+		try
+		{
+			using var document = JsonDocument.Parse(stream);
+			if (document.RootElement.ValueKind == JsonValueKind.Object)
+				foreach (var property in document.RootElement.EnumerateObject())
+					result[property.Name] = property.Value.Clone();
+			return result;
+		}
+		catch (JsonException ex)
+		{
+			Program.Logger.LogWarning(ex, "Could not read settings.");
+			return new(fallback, StringComparer.Ordinal);
+		}
 	}
 
 	internal bool GetBoolean(string key, bool fallback)
@@ -100,6 +111,15 @@ internal sealed class SettingsStore
 	{
 		user.watcher.Dispose();
 		tags.watcher.Dispose();
+		if (!FlushAll())
+			Program.Logger.LogError("Could not flush all settings before server shutdown.");
+	}
+
+	internal static bool FlushAll()
+	{
+		var userFlushed = user.Flush();
+		var tagsFlushed = tags.Flush();
+		return userFlushed && tagsFlushed;
 	}
 
 	internal SettingsValue[] ReadValues()
@@ -136,45 +156,127 @@ internal sealed class SettingsStore
 
 	private bool Mutate(Func<Dictionary<string, JsonElement>, bool> mutate)
 	{
+		bool changed;
 		lock (gate)
 		{
-			// Elevated and unelevated servers for this user share the same persisted settings.
-			using var lease = AcquireWriteLease();
-			var data = new Dictionary<string, JsonElement>(Read(fresh: true));
-			if (!mutate(data))
-				return false;
-			var temporary = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
-			try
+			changed = mutate(values ?? Read());
+			if (changed)
 			{
-				using (var stream = new FileStream(temporary, FileMode.CreateNew, FileAccess.Write, FileShare.None))
-				{
-					using var writer = new Utf8JsonWriter(stream, new JsonWriterOptions { Indented = true });
-					writer.WriteStartObject();
-					foreach (var pair in data)
-					{
-						writer.WritePropertyName(pair.Key);
-						pair.Value.WriteTo(writer);
-					}
-					writer.WriteEndObject();
-					writer.Flush();
-					stream.Flush(true);
-				}
-				File.Move(temporary, path, true);
-				values = data;
-				lastWrite = File.GetLastWriteTimeUtc(path);
-				length = new FileInfo(path).Length;
+				pendingWrites.Add(mutate);
+				version++;
 			}
-			finally
-			{
-				if (File.Exists(temporary))
-					File.Delete(temporary);
-			}
+			StartWriter();
 		}
-		Changed?.Invoke(fileName);
-		ServerEvents.Notify(ServerChangeNames.Settings(fileName));
-		return true;
+		if (changed)
+		{
+			Changed?.Invoke(fileName);
+			ServerEvents.Notify(ServerChangeNames.Settings(fileName));
+		}
+		return changed;
 	}
 
-	private FileStream AcquireWriteLease() => FileWriteLease.Acquire(path);
+	private void StartWriter()
+	{
+		if (writing || pendingWrites.Count == 0)
+			return;
+		writing = true;
+		_ = Task.Run(PersistPendingChanges);
+	}
 
+	private void PersistPendingChanges()
+	{
+		try
+		{
+			while (true)
+			{
+				Func<Dictionary<string, JsonElement>, bool>[] batch;
+				Dictionary<string, JsonElement> fallback;
+				long batchVersion;
+				lock (gate)
+				{
+					if (pendingWrites.Count == 0)
+					{
+						writing = false;
+						Monitor.PulseAll(gate);
+						return;
+					}
+					batch = pendingWrites.ToArray();
+					fallback = new(values!);
+					batchVersion = version;
+				}
+
+				// Merge against disk under the shared lease so elevated servers cannot lose each other's writes.
+				using var lease = FileWriteLease.Acquire(path);
+				var data = ReadFile(fallback);
+				foreach (var change in batch)
+					change(data);
+				WriteFile(data);
+				var file = new FileInfo(path);
+				var lastWriteTime = file.LastWriteTimeUtc;
+				var fileLength = file.Length;
+				lock (gate)
+				{
+					pendingWrites.RemoveRange(0, batch.Length);
+					values = data;
+					foreach (var change in pendingWrites)
+						change(values);
+					persistedVersion = batchVersion;
+					lastWrite = lastWriteTime;
+					length = fileLength;
+					invalidated = false;
+					Monitor.PulseAll(gate);
+				}
+			}
+		}
+		catch (Exception ex)
+		{
+			lock (gate)
+			{
+				writing = false;
+				writeFailures++;
+				Monitor.PulseAll(gate);
+			}
+			Program.Logger.LogError(ex, "Could not persist settings. Pending changes are retained for the next write or flush.");
+		}
+	}
+
+	internal bool Flush()
+	{
+		lock (gate)
+		{
+			var requestedVersion = version;
+			var failures = writeFailures;
+			StartWriter();
+			while (persistedVersion < requestedVersion && writeFailures == failures && writing)
+				Monitor.Wait(gate);
+			return persistedVersion >= requestedVersion;
+		}
+	}
+
+	private void WriteFile(Dictionary<string, JsonElement> data)
+	{
+		var temporary = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
+		try
+		{
+			using (var stream = new FileStream(temporary, FileMode.CreateNew, FileAccess.Write, FileShare.None))
+			{
+				using var writer = new Utf8JsonWriter(stream, new JsonWriterOptions { Indented = true });
+				writer.WriteStartObject();
+				foreach (var pair in data)
+				{
+					writer.WritePropertyName(pair.Key);
+					pair.Value.WriteTo(writer);
+				}
+				writer.WriteEndObject();
+				writer.Flush();
+				stream.Flush(true);
+			}
+			File.Move(temporary, path, true);
+		}
+		finally
+		{
+			if (File.Exists(temporary))
+				File.Delete(temporary);
+		}
+	}
 }

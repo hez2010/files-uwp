@@ -31,6 +31,7 @@ namespace Files.App
 		private static readonly Task<Server.AppService> serverSession = Task.Run(() =>
 		{
 			var server = new Server.AppService(Environment.ProcessId);
+			CanRestorePreviousSession = server.CanRestorePreviousSession;
 			server.Changed += (_, name) => UiDispatcher?.TryEnqueue(() =>
 			{
 				if (ServerChanged is not { } handlers)
@@ -42,6 +43,7 @@ namespace Files.App
 		});
 
 		internal static event EventHandler<string>? ServerChanged;
+		internal static bool CanRestorePreviousSession { get; private set; }
 		public static FlyoutBase? LastOpenedFlyout
 		{
 			set
@@ -107,6 +109,7 @@ namespace Files.App
 
 						// Configure Ioc here so Ioc.Default-dependent constructions warm off-thread too
 						Ioc.Default.ConfigureServices(provider);
+						_ = provider.GetRequiredService<IFileTagsSettingsService>();
 
 						// Load the appearance settings needed for the first frame off the UI thread.
 						if (isStartupTask && provider.GetRequiredService<IGeneralSettingsService>().CloseToBackground)
@@ -219,7 +222,11 @@ namespace Files.App
 				}
 
 				_ = SafetyExtensions.IgnoreExceptions(async () => (await serverSession).SetWindowHandle(MainWindow.Instance.WindowHandle), Logger);
-				_ = MainWindow.Instance.InitializeApplicationAsync(appActivationArguments.Data);
+				_ = SafetyExtensions.IgnoreExceptions(async () =>
+				{
+					await serverSession;
+					await MainWindow.Instance.InitializeApplicationAsync(appActivationArguments.Data);
+				}, Logger);
 
 				await AppLifecycleHelper.InitializeAppComponentsAsync();
 			}

@@ -11,9 +11,11 @@ public sealed partial class AppService : IDisposable
 	private readonly long clientId;
 	private int disposed;
 
+	public bool CanRestorePreviousSession { get; }
+
 	public AppService(int processId)
 	{
-		clientId = ServerHost.AddClient(processId);
+		(clientId, CanRestorePreviousSession) = ServerHost.AddClient(processId);
 	}
 
 	~AppService() => Dispose();
@@ -56,6 +58,14 @@ public sealed partial class AppService : IDisposable
 			throw new ArgumentOutOfRangeException(nameof(group));
 		return ServerAsync.Run(token => InitializationCache.CloudProviders[group].GetAsync().WaitAsync(token));
 	}
+
+	public static SettingsValue[] GetSettings(string fileName) => SettingsStore.Get(fileName).ReadValues();
+
+	public static bool SetSetting(string fileName, string key, [ReadOnlyArray] SettingsValue[] value) => SettingsStore.Get(fileName).Set(key, value, false);
+
+	public static bool RemoveSetting(string fileName, string key) => SettingsStore.Get(fileName).Set(key, [], true);
+
+	public static bool ImportSettings(string fileName, [ReadOnlyArray] SettingsValue[] values) => SettingsStore.Get(fileName).Import(values);
 
 	public static void BeginUpdate() => ServerHost.BeginUpdate();
 

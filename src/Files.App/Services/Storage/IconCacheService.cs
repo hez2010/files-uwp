@@ -3,8 +3,10 @@
 
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml.Media.Imaging;
+using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.WindowsRuntime;
 
 namespace Files.App.Services
@@ -23,8 +25,17 @@ namespace Files.App.Services
 
 			var scaledSize = size * App.AppModel.AppWindowDPI;
 			var pixels = new[] { 16, 24, 32, 48, 64, 96, 128, 256 }.FirstOrDefault(value => value >= scaledSize, 256);
-			var buffer = await Server.AppService.GetGenericIconAsync(extension ?? string.Empty, isFolder, pixels);
-			var icon = buffer.Length == 0 ? null : buffer.ToArray();
+			byte[]? icon;
+			try
+			{
+				var buffer = await Server.AppService.GetGenericIconAsync(extension ?? string.Empty, isFolder, pixels);
+				icon = buffer.Length == 0 ? null : buffer.ToArray();
+			}
+			catch (COMException ex)
+			{
+				App.Logger.LogInformation(ex, "Could not load a generic icon from the server.");
+				return null;
+			}
 
 			_cache.TryAdd(key, icon);
 			return icon;

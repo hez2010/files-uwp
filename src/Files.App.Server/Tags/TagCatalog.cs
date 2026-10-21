@@ -29,9 +29,10 @@ internal static class TagCatalog
 			using var reader = new StreamReader(stream);
 			return reader.ReadToEnd().Split(',', StringSplitOptions.RemoveEmptyEntries);
 		}
-		catch (FileNotFoundException) when (File.Exists(path) || Directory.Exists(path))
+		catch (IOException ex) when (ex is FileNotFoundException or DirectoryNotFoundException)
 		{
-			return [];
+			// Keep tags on unavailable volumes or shares; remove confirmed missing files and streams.
+			return File.Exists(path) || Directory.Exists(path) || Directory.Exists(Path.GetPathRoot(path)) ? [] : null;
 		}
 		catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
 		{

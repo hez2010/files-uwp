@@ -23,10 +23,8 @@ namespace Files.App.Utils.FileTags
 			return items.Select(item => new TaggedFile { FilePath = item.Path, Frn = item.FileId, Tags = item.Tags }).ToArray();
 		}
 
-		public IEnumerable<TaggedFile> GetAllUnderPath(string folderPath)
-		{
-			return GetAllUnderPathAsync(folderPath).GetAwaiter().GetResult();
-		}
+		// Native file-operation callbacks need current registry entries without waiting on server RPC.
+		public IEnumerable<TaggedFile> GetAllUnderPath(string folderPath) => registry.GetAllUnderPath(folderPath);
 
 		public async Task<IEnumerable<TaggedFile>> GetAllUnderPathAsync(string folderPath)
 		{

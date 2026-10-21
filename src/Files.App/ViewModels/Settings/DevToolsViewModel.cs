@@ -107,18 +107,30 @@ namespace Files.App.ViewModels.Settings
 			StartEditingIDECommand = new RelayCommand(DoStartEditingIDE);
 			OpenFilePickerForIDECommand = new RelayCommand(DoOpenFilePickerForIDE);
 			TestIDECommand = new RelayCommand(DoTestIDE);
-			DevToolsSettingsService.PropertyChanged += (_, e) =>
+		}
+
+		internal void StartListening()
+		{
+			DevToolsSettingsService.PropertyChanged -= OnSharedSettingChanged;
+			DevToolsSettingsService.PropertyChanged += OnSharedSettingChanged;
+			RefreshSettings();
+		}
+
+		internal void StopListening() => DevToolsSettingsService.PropertyChanged -= OnSharedSettingChanged;
+
+		private void OnSharedSettingChanged(object? sender, PropertyChangedEventArgs e) => RefreshSettings(e.PropertyName);
+
+		private void RefreshSettings(string? name = null)
+		{
+			if (name is null or nameof(IDevToolsSettingsService.OpenInIDEOption))
+				SetProperty(ref selectedOpenInIDEOption, OpenInIDEOptions[DevToolsSettingsService.OpenInIDEOption], nameof(SelectedOpenInIDEOption));
+			if (!IsEditingIDEConfig)
 			{
-				if (e.PropertyName == nameof(IDevToolsSettingsService.OpenInIDEOption))
-					SetProperty(ref selectedOpenInIDEOption, OpenInIDEOptions[DevToolsSettingsService.OpenInIDEOption], nameof(SelectedOpenInIDEOption));
-				else if (!IsEditingIDEConfig)
-				{
-					if (e.PropertyName == nameof(IDevToolsSettingsService.IDEPath))
-						IDEPath = DevToolsSettingsService.IDEPath;
-					else if (e.PropertyName == nameof(IDevToolsSettingsService.IDEName))
-						IDEName = DevToolsSettingsService.IDEName;
-				}
-			};
+				if (name is null or nameof(IDevToolsSettingsService.IDEPath))
+					IDEPath = DevToolsSettingsService.IDEPath;
+				if (name is null or nameof(IDevToolsSettingsService.IDEName))
+					IDEName = DevToolsSettingsService.IDEName;
+			}
 		}
 
 		private string selectedOpenInIDEOption = null!;

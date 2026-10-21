@@ -29,37 +29,51 @@ namespace Files.App.ViewModels.Settings
 			SelectedOpenFilesWithSingleClickOption = SingleClickOpenModeOptions[UserSettingsService.FoldersSettingsService.OpenFilesWithSingleClick];
 			SelectedOpenFoldersWithSingleClickOption = SingleClickOpenModeOptions[UserSettingsService.FoldersSettingsService.OpenFoldersWithSingleClick];
 			SelectedOpenFoldersInColumnsViewWithSingleClickOption = SingleClickOpenModeOptions[UserSettingsService.FoldersSettingsService.OpenFoldersInColumnsViewWithSingleClick];
-			UserSettingsService.OnSettingChangedEvent += OnSharedSettingChanged;
 		}
+
+		internal void StartListening()
+		{
+			UserSettingsService.OnSettingChangedEvent -= OnSharedSettingChanged;
+			UserSettingsService.OnSettingChangedEvent += OnSharedSettingChanged;
+			RefreshSettings();
+		}
+
+		internal void StopListening() => UserSettingsService.OnSettingChangedEvent -= OnSharedSettingChanged;
 
 		private void OnSharedSettingChanged(object? sender, SettingChangedEventArgs e)
 		{
-			if (e.NewValue is not JsonElement)
-				return;
+			if (e.NewValue is JsonElement)
+				RefreshSettings(e.SettingName);
+		}
 
+		private void RefreshSettings(string? name = null)
+		{
 			var settings = UserSettingsService.FoldersSettingsService;
-			switch (e.SettingName)
+			if (name is null or nameof(IFoldersSettingsService.DeleteConfirmationPolicy))
 			{
-				case nameof(IFoldersSettingsService.DeleteConfirmationPolicy):
-					SetProperty(ref selectedDeleteConfirmationPolicyIndex, (int)settings.DeleteConfirmationPolicy, nameof(SelectedDeleteConfirmationPolicyIndex));
-					break;
-				case nameof(IFoldersSettingsService.OpenFilesWithSingleClick):
-					SetProperty(ref selectedOpenFilesWithSingleClickOption, SingleClickOpenModeOptions[settings.OpenFilesWithSingleClick], nameof(SelectedOpenFilesWithSingleClickOption));
-					break;
-				case nameof(IFoldersSettingsService.OpenFoldersWithSingleClick):
-					SetProperty(ref selectedOpenFoldersWithSingleClickOption, SingleClickOpenModeOptions[settings.OpenFoldersWithSingleClick], nameof(SelectedOpenFoldersWithSingleClickOption));
-					break;
-				case nameof(IFoldersSettingsService.OpenFoldersInColumnsViewWithSingleClick):
-					SetProperty(ref selectedOpenFoldersInColumnsViewWithSingleClickOption, SingleClickOpenModeOptions[settings.OpenFoldersInColumnsViewWithSingleClick], nameof(SelectedOpenFoldersInColumnsViewWithSingleClickOption));
-					break;
-				case nameof(IFoldersSettingsService.SizeUnitFormat):
-					SetProperty(ref sizeUnitFormat, SizeUnitsOptions[settings.SizeUnitFormat], nameof(SizeUnitFormat));
-					break;
-				case nameof(IFoldersSettingsService.OpenFoldersInNewTab):
-					OnPropertyChanged(nameof(OpenFoldersNewTab));
-					break;
+				SetProperty(ref selectedDeleteConfirmationPolicyIndex, (int)settings.DeleteConfirmationPolicy, nameof(SelectedDeleteConfirmationPolicyIndex));
 			}
-			OnPropertyChanged(e.SettingName);
+			if (name is null or nameof(IFoldersSettingsService.OpenFilesWithSingleClick))
+			{
+				SetProperty(ref selectedOpenFilesWithSingleClickOption, SingleClickOpenModeOptions[settings.OpenFilesWithSingleClick], nameof(SelectedOpenFilesWithSingleClickOption));
+			}
+			if (name is null or nameof(IFoldersSettingsService.OpenFoldersWithSingleClick))
+			{
+				SetProperty(ref selectedOpenFoldersWithSingleClickOption, SingleClickOpenModeOptions[settings.OpenFoldersWithSingleClick], nameof(SelectedOpenFoldersWithSingleClickOption));
+			}
+			if (name is null or nameof(IFoldersSettingsService.OpenFoldersInColumnsViewWithSingleClick))
+			{
+				SetProperty(ref selectedOpenFoldersInColumnsViewWithSingleClickOption, SingleClickOpenModeOptions[settings.OpenFoldersInColumnsViewWithSingleClick], nameof(SelectedOpenFoldersInColumnsViewWithSingleClickOption));
+			}
+			if (name is null or nameof(IFoldersSettingsService.SizeUnitFormat))
+			{
+				SetProperty(ref sizeUnitFormat, SizeUnitsOptions[settings.SizeUnitFormat], nameof(SizeUnitFormat));
+			}
+			if (name is null or nameof(IFoldersSettingsService.OpenFoldersInNewTab))
+			{
+				OnPropertyChanged(nameof(OpenFoldersNewTab));
+			}
+			OnPropertyChanged(name ?? string.Empty);
 		}
 
 		// Properties

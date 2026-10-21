@@ -52,6 +52,8 @@ internal static class UpdateCatalog
 
 	private static async Task RefreshAsync()
 	{
+		ReleaseNotes.Invalidate();
+		Invalidate();
 		await SafetyExtensions.IgnoreExceptions(ReleaseNotes.GetAsync, Program.Logger);
 		if (environment is "sideloadstable" or "sideloadpreview")
 			await SafetyExtensions.IgnoreExceptions(SideloadUpdate.GetAsync, Program.Logger);

@@ -25,7 +25,6 @@ namespace Files.App.ViewModels
 		private IGeneralSettingsService GeneralSettingsService { get; } = Ioc.Default.GetRequiredService<IGeneralSettingsService>();
 		private INetworkService NetworkService { get; } = Ioc.Default.GetRequiredService<INetworkService>();
 		private IUserSettingsService UserSettingsService { get; } = Ioc.Default.GetRequiredService<IUserSettingsService>();
-		private IResourcesService ResourcesService { get; } = Ioc.Default.GetRequiredService<IResourcesService>();
 		private DrivesViewModel DrivesViewModel { get; } = Ioc.Default.GetRequiredService<DrivesViewModel>();
 		public ShelfViewModel ShelfViewModel { get; } = Ioc.Default.GetRequiredService<ShelfViewModel>();
 
@@ -246,11 +245,13 @@ namespace Files.App.ViewModels
 			var ignoreStartupSettings = false;
 			if (parameter is MainPageNavigationArguments mainPageNavigationArguments)
 			{
+				if (mainPageNavigationArguments.DeferInitialization)
+					return;
 				parameter = mainPageNavigationArguments.Parameter;
 				ignoreStartupSettings = mainPageNavigationArguments.IgnoreStartupSettings;
 			}
 
-			// Re-arm the signal when tabs load again after closing to the background
+			// Reset the signal when tabs are loaded again.
 			if (startupTabsTcs.Task.IsCompleted)
 				startupTabsTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
@@ -337,9 +338,6 @@ namespace Files.App.ViewModels
 			{
 				startupTabsTcs.TrySetResult();
 			}
-
-			// Load the app theme resources
-			ResourcesService.LoadAppResources(AppearanceSettingsService);
 
 			await Task.WhenAll(
 				DrivesViewModel.UpdateDrivesAsync(),

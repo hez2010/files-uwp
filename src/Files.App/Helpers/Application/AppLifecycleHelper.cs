@@ -76,7 +76,6 @@ namespace Files.App.Helpers
 				? appEnvironment
 				: AppEnvironment.Dev;
 
-
 		/// <summary>
 		/// Gets application package version.
 		/// </summary>
@@ -113,10 +112,10 @@ namespace Files.App.Helpers
 			{
 				await SafetyExtensions.IgnoreExceptions(() => Task.WhenAll(
 					App.QuickAccessManager.InitializeAsync(),
-					OptionalTaskAsync(CloudDrivesManager.UpdateDrivesAsync(), generalSettingsService.ShowCloudDrivesSection),
+					OptionalTaskAsync(CloudDrivesManager.UpdateDrivesAsync, generalSettingsService.ShowCloudDrivesSection),
 					App.LibraryManager.UpdateLibrariesAsync(),
-					OptionalTaskAsync(WSLDistroManager.UpdateDrivesAsync(), generalSettingsService.ShowWslSection),
-					OptionalTaskAsync(App.FileTagsManager.UpdateFileTagsAsync(), generalSettingsService.ShowFileTagsSection),
+					OptionalTaskAsync(WSLDistroManager.UpdateDrivesAsync, generalSettingsService.ShowWslSection),
+					OptionalTaskAsync(App.FileTagsManager.UpdateFileTagsAsync, generalSettingsService.ShowFileTagsSection),
 					jumpListService.InitializeAsync()
 				), App.Logger);
 
@@ -137,10 +136,10 @@ namespace Files.App.Helpers
 				await PeriodicallyCheckForUpdatesAsync();
 			});
 
-			static Task OptionalTaskAsync(Task task, bool condition)
+			static Task OptionalTaskAsync(Func<Task> task, bool condition)
 			{
 				if (condition)
-					return task;
+					return task();
 
 				return Task.CompletedTask;
 			}

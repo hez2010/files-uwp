@@ -1,8 +1,6 @@
 // Copyright (c) Files Community
 // Licensed under the MIT License.
 
-using Files.App.Data.Enums;
-using Files.App.Utils.Storage;
 using System.Collections.Concurrent;
 using System.Runtime.InteropServices.WindowsRuntime;
 using Windows.Storage.Streams;

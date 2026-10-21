@@ -13,6 +13,8 @@ using WinRT;
 
 [assembly: GeneratedWinRTExposedExternalType(typeof(ServerAsyncOperation<bool>))]
 [assembly: GeneratedWinRTExposedExternalType(typeof(ServerAsyncOperation<ShellNewEntryInfo>))]
+[assembly: GeneratedWinRTExposedExternalType(typeof(ServerAsyncOperation<DriveItemInfo>))]
+[assembly: GeneratedWinRTExposedExternalType(typeof(ServerAsyncOperation<DrivePropertiesInfo>))]
 [assembly: GeneratedWinRTExposedExternalType(typeof(ServerAsyncOperation<IReadOnlyList<string>>))]
 [assembly: GeneratedWinRTExposedExternalType(typeof(ServerAsyncOperation<IReadOnlyList<ShellNewEntryInfo>>))]
 [assembly: GeneratedWinRTExposedExternalType(typeof(ServerAsyncOperation<IReadOnlyList<PinnedFolderInfo>>))]

@@ -170,7 +170,7 @@ namespace Files.App.Services
 				Path = entry.Path,
 				Name = FoldersSettingsService.ShowFileExtensions || string.IsNullOrEmpty(Path.GetFileNameWithoutExtension(entry.Name))
 					? entry.Name : Path.GetFileNameWithoutExtension(entry.Name),
-				LastModified = entry.Modified == DateTimeOffset.MinValue ? DateTime.MinValue : entry.Modified.LocalDateTime,
+				LastModified = entry.Modified?.LocalDateTime ?? DateTime.MinValue,
 				Pidl = entry.Pidl,
 			}).ToList();
 			var previous = folders ? RecentFolders : RecentFiles;

@@ -29,16 +29,16 @@ internal static class LocationCatalog
 							continue;
 						var identity = item.ParsingName ?? item.FileSystemPath ?? string.Empty;
 						var target = links
-							? item is Files.App.Utils.Shell.ShellLink link ? link.TargetPath : item.Properties["System.Link.TargetParsingPath"] as string
+							? item is Files.Storage.ShellLink link ? link.TargetPath : item.Properties["System.Link.TargetParsingPath"] as string
 							: item.GetDisplayName(SIGDN.SIGDN_DESKTOPABSOLUTEEDITING);
 						if (string.IsNullOrEmpty(target))
 							continue;
 						var date = SafetyExtensions.IgnoreExceptions(() => item.Properties["System.DateModified"], Program.Logger);
-						var modified = date switch
+						DateTimeOffset? modified = date switch
 						{
 							DateTimeOffset value => value,
 							DateTime value => new DateTimeOffset(value),
-							_ => DateTimeOffset.MinValue,
+							_ => null,
 						};
 						result.Add(new ShellLocationInfo(target, identity, item.Name ?? string.Empty, item.PIDL.GetBytes(), modified));
 						if (result.Count >= limit)

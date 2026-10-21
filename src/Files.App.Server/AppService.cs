@@ -57,6 +57,10 @@ public sealed partial class AppService : IDisposable
 		return ServerAsync.Run(token => InitializationCache.CloudProviders[group].GetAsync().WaitAsync(token));
 	}
 
+	public static IAsyncOperation<Windows.Storage.Streams.IBuffer> GetGenericIconAsync(string extension, bool folder, int size) => ServerAsync.Run(token => IconCache.GetGenericAsync(extension, folder, size).WaitAsync(token));
+
+	public static IAsyncOperation<Windows.Storage.Streams.IBuffer> GetIconAsync(string path, int size, bool folder, uint options, bool overlay) => ServerAsync.Run(token => IconCache.GetAsync(path, size, folder, options, overlay).WaitAsync(token));
+
 	public static void BeginUpdate() => ServerHost.BeginUpdate();
 
 	public static void EndUpdate() => ServerHost.EndUpdate();

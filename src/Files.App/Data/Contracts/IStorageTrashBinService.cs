@@ -11,7 +11,7 @@ namespace Files.App.Data.Contracts
 		/// <summary>
 		/// Gets the watcher of Recycle Bin folder.
 		/// </summary>
-		Files.Core.Storage.Contracts.ITrashWatcher Watcher { get; }
+		Files.Storage.ITrashWatcher Watcher { get; }
 
 		event EventHandler? StateChanged;
 

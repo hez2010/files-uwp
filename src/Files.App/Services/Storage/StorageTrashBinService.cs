@@ -16,7 +16,7 @@ namespace Files.App.Services
 	public class StorageTrashBinService : IStorageTrashBinService
 	{
 		/// <inheritdoc/>
-		public Files.Core.Storage.Contracts.ITrashWatcher Watcher { get; } = new ServerTrashWatcher();
+		public Files.Storage.ITrashWatcher Watcher { get; } = new ServerTrashWatcher();
 
 		public event EventHandler? StateChanged;
 		private bool hasItems;
@@ -25,6 +25,10 @@ namespace Files.App.Services
 		public StorageTrashBinService()
 		{
 			Watcher.RefreshRequested += (_, _) => QueueRefresh();
+			Watcher.ItemAdded += (_, _) => QueueRefresh();
+			Watcher.ItemDeleted += (_, _) => QueueRefresh();
+			Watcher.ItemChanged += (_, _) => QueueRefresh();
+			Watcher.ItemRenamed += (_, _) => QueueRefresh();
 			QueueRefresh();
 		}
 

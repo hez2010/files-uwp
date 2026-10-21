@@ -28,6 +28,8 @@ public sealed partial class AppService : IDisposable
 
 	public void SetWindowHandle(long handle) => ServerHost.SetWindow(clientId, handle);
 
+	public RecycleBinChange[] GetRecycleBinChanges() => RecycleBinCatalog.GetChanges(clientId);
+
 	public static IAsyncAction InitializeAsync() => ServerAsync.Run(token => StartupServices.InitializeAsync().WaitAsync(token));
 
 	public static IAsyncOperation<IReadOnlyList<ShellNewEntryInfo>> GetShellNewEntriesAsync() => ServerAsync.Run(token => InitializationCache.ShellNew.GetAsync().WaitAsync(token));

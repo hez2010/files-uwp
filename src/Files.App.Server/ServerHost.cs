@@ -48,6 +48,7 @@ internal static class ServerHost
 				process.Exited += (_, _) => controller.DispatcherQueue.TryEnqueue(() => RemoveClient(id));
 				process.EnableRaisingEvents = true;
 				clients.Add(id, (process, default));
+				RecycleBinCatalog.AddClient(id);
 				return id;
 			}
 			catch
@@ -104,6 +105,7 @@ internal static class ServerHost
 		}
 		process.Dispose();
 		ServerEvents.RemoveClient(id);
+		RecycleBinCatalog.RemoveClient(id);
 		if (!Program.ExitSignal.Task.IsCompleted)
 		{
 			settings.Refresh();

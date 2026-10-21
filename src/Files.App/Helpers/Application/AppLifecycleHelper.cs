@@ -127,8 +127,6 @@ namespace Files.App.Helpers
 				), App.Logger);
 			});
 
-			_ = Task.Run(FileTagsHelper.UpdateTagsDb);
-
 			_ = Task.Run(async () =>
 			{
 				// The follwing method invokes UI thread, so we run it in a separate task

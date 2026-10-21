@@ -131,7 +131,7 @@ namespace Files.App.Services.Settings
 			var oldTags = FileTagList.ToList();
 			oldTags.RemoveAt(index);
 			FileTagList = oldTags;
-			UntagAllFiles(uid);
+			_ = SafetyExtensions.IgnoreExceptions(() => UntagAllFilesAsync(uid), App.Logger);
 		}
 
 		public override bool ImportSettings(object import)
@@ -181,11 +181,11 @@ namespace Files.App.Services.Settings
 			return -1;
 		}
 
-		private void UntagAllFiles(string uid)
+		private async Task UntagAllFilesAsync(string uid)
 		{
 			var tagDoDelete = new string[] { uid };
 
-			foreach (var item in FileTagsHelper.GetDbInstance().GetAll())
+			foreach (var item in await FileTagsHelper.GetDbInstance().GetAllAsync())
 			{
 				if (item.Tags.Contains(uid))
 				{

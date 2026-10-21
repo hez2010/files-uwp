@@ -57,6 +57,12 @@ public sealed partial class AppService : IDisposable
 		return ServerAsync.Run(token => InitializationCache.CloudProviders[group].GetAsync().WaitAsync(token));
 	}
 
+	public static IAsyncOperation<IReadOnlyList<string>> GetDriveIdsAsync() => ServerAsync.Run(token => DriveCatalog.GetIdsAsync().WaitAsync(token));
+
+	public static IAsyncOperation<DriveItemInfo?> GetDriveAsync(string id) => ServerAsync.Run(token => DriveCatalog.GetAsync(id).WaitAsync(token));
+
+	public static IAsyncOperation<DrivePropertiesInfo> GetDrivePropertiesAsync(string path, bool cloud) => ServerAsync.Run(token => DriveCatalog.GetPropertiesAsync(path, cloud).WaitAsync(token));
+
 	public static void BeginUpdate() => ServerHost.BeginUpdate();
 
 	public static void EndUpdate() => ServerHost.EndUpdate();

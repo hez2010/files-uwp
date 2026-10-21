@@ -93,6 +93,16 @@ internal static class ServerHost
 		controller.DispatcherQueue.TryEnqueue(ExitIfIdle);
 	}
 
+	internal static void BeginPinnedFoldersUpdate(long id)
+	{
+		lock (gate)
+		{
+			if (!clients.ContainsKey(id))
+				throw new ObjectDisposedException(nameof(AppService));
+			ServerEvents.BeginPinnedFoldersUpdate(id);
+		}
+	}
+
 	internal static void RemoveClient(long id)
 	{
 		Process process;

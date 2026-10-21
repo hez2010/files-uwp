@@ -106,18 +106,25 @@ namespace Files.App.Services
 			if (Equals(items, App.QuickAccessManager.Model.PinnedFolders.ToArray()))
 				return;
 
-			// Unpin every item that is below this index and then pin them all in order
-			if (!await UnpinFromSidebarAsync([], false))
+			var server = await App.ServerSession;
+			server.BeginPinnedFoldersUpdate();
+			try
 			{
-				return;
+				// Unpin every item that is below this index and then pin them all in order
+				if (!await UnpinFromSidebarAsync([], false))
+					return;
+
+				await PinToSidebarAsync(items, false);
+
+				App.QuickAccessManager.UpdateQuickAccessWidget?.Invoke(this, new ModifyQuickAccessEventArgs(items, true)
+				{
+					Reorder = true
+				});
 			}
-
-			await PinToSidebarAsync(items, false);
-
-			App.QuickAccessManager.UpdateQuickAccessWidget?.Invoke(this, new ModifyQuickAccessEventArgs(items, true)
+			finally
 			{
-				Reorder = true
-			});
+				SafetyExtensions.IgnoreExceptions(server.EndPinnedFoldersUpdate, App.Logger);
+			}
 		}
 	}
 }

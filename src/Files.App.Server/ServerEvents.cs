@@ -11,6 +11,7 @@ internal static class ServerEvents
 	private static readonly HashSet<string> pending = [];
 	private static readonly Timer timer = new(_ => Flush(), null, Timeout.Infinite, Timeout.Infinite);
 	private static readonly Dictionary<long, EventHandler<string>?> handlers = [];
+	private static readonly Dictionary<long, int> pinnedFolderUpdates = [];
 
 	internal static void Add(long client, EventHandler<string> handler)
 	{
@@ -33,7 +34,38 @@ internal static class ServerEvents
 	internal static void RemoveClient(long client)
 	{
 		lock (gate)
+		{
 			handlers.Remove(client);
+			if (pinnedFolderUpdates.Remove(client))
+			{
+				pending.Add(ServerChangeNames.PinnedFolders);
+				timer.Change(150, Timeout.Infinite);
+			}
+		}
+	}
+
+	internal static void BeginPinnedFoldersUpdate(long client)
+	{
+		lock (gate)
+		{
+			pinnedFolderUpdates.TryGetValue(client, out var count);
+			pinnedFolderUpdates[client] = count + 1;
+		}
+	}
+
+	internal static void EndPinnedFoldersUpdate(long client)
+	{
+		lock (gate)
+		{
+			if (!pinnedFolderUpdates.TryGetValue(client, out var count))
+				return;
+			if (count > 1)
+				pinnedFolderUpdates[client] = count - 1;
+			else
+				pinnedFolderUpdates.Remove(client);
+			pending.Add(ServerChangeNames.PinnedFolders);
+			timer.Change(150, Timeout.Infinite);
+		}
 	}
 
 	internal static void Notify(string name)
@@ -50,8 +82,8 @@ internal static class ServerEvents
 		string[] names;
 		lock (gate)
 		{
-			names = pending.ToArray();
-			pending.Clear();
+			names = pending.Where(name => name != ServerChangeNames.PinnedFolders || pinnedFolderUpdates.Count == 0).ToArray();
+			pending.ExceptWith(names);
 		}
 		foreach (var name in names)
 			Publish(name);
@@ -68,6 +100,14 @@ internal static class ServerEvents
 		{
 			foreach (var listener in listeners)
 			{
+				lock (gate)
+				{
+					if (name == ServerChangeNames.PinnedFolders && pinnedFolderUpdates.Count > 0)
+					{
+						pending.Add(name);
+						return;
+					}
+				}
 				try
 				{
 					listener.Value?.Invoke(null, name);

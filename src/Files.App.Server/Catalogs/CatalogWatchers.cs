@@ -1,7 +1,7 @@
 // Copyright (c) Files Community
 // Licensed under the MIT License.
 
-using Files.App.Storage.Watchers;
+using Files.Storage;
 using Microsoft.Extensions.Logging;
 using System.IO.Enumeration;
 

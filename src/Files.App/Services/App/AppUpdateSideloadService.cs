@@ -205,6 +205,8 @@ namespace Files.App.Services
 			try
 			{
 				PackageManager packageManager = new PackageManager();
+				if (!Server.AppService.FlushAllSettings())
+					throw new System.IO.IOException("Could not save settings before installing the update.");
 
 				var restartStatus = PInvoke.RegisterApplicationRestart(null, (REGISTER_APPLICATION_RESTART_FLAGS)0);
 				serverUpdateStarted = SafetyExtensions.IgnoreExceptions(Server.AppService.BeginUpdate, Logger);

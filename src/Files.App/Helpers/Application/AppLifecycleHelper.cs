@@ -120,11 +120,7 @@ namespace Files.App.Helpers
 					jumpListService.InitializeAsync()
 				), App.Logger);
 
-				//Start the tasks separately to reduce resource contention
-				await SafetyExtensions.IgnoreExceptions(() => Task.WhenAll(
-					addItemService.InitializeAsync(),
-					ContextMenu.WarmUpQueryContextMenuAsync()
-				), App.Logger);
+				await SafetyExtensions.IgnoreExceptions(addItemService.InitializeAsync, App.Logger);
 			});
 
 			_ = Task.Run(FileTagsHelper.UpdateTagsDb);

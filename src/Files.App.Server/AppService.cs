@@ -57,6 +57,12 @@ public sealed partial class AppService : IDisposable
 		return ServerAsync.Run(token => InitializationCache.CloudProviders[group].GetAsync().WaitAsync(token));
 	}
 
+	public static IAsyncOperation<ContextMenuSession?> GetContextMenuAsync([ReadOnlyArray] string[] paths, uint flags) => ServerAsync.Run(async token =>
+	{
+		var menu = await ContextMenu.GetContextMenuForFiles(paths, flags);
+		return menu is null ? null : new ContextMenuSession(menu);
+	});
+
 	public static void BeginUpdate() => ServerHost.BeginUpdate();
 
 	public static void EndUpdate() => ServerHost.EndUpdate();

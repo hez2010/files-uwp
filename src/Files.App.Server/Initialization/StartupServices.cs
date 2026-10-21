@@ -6,4 +6,9 @@ namespace Files.App.Server;
 internal static class StartupServices
 {
 	internal static Task InitializeAsync() => InitializationCache.InitializeAsync();
+
+	internal static void Stop()
+	{
+		SettingsStore.Stop();
+	}
 }

@@ -57,6 +57,10 @@ public sealed partial class AppService : IDisposable
 		return ServerAsync.Run(token => InitializationCache.CloudProviders[group].GetAsync().WaitAsync(token));
 	}
 
+	public static IAsyncOperation<bool> HasRecycleBinItemsAsync() => ServerAsync.Run(token => RecycleBinCatalog.HasItemsAsync().WaitAsync(token));
+
+	public static IAsyncOperation<RecycleBinInfo> QueryRecycleBinAsync(string path) => ServerAsync.Run(token => RecycleBinCatalog.QueryAsync(path).WaitAsync(token));
+
 	public static void BeginUpdate() => ServerHost.BeginUpdate();
 
 	public static void EndUpdate() => ServerHost.EndUpdate();

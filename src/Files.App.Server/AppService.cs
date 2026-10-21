@@ -47,6 +47,7 @@ public sealed partial class AppService : IDisposable
 	public static void InvalidatePinnedFolders()
 	{
 		InitializationCache.PinnedFolders.Invalidate();
+		JumpListCatalog.Invalidate();
 		ServerEvents.Notify(ServerChangeNames.PinnedFolders);
 	}
 
@@ -56,6 +57,14 @@ public sealed partial class AppService : IDisposable
 			throw new ArgumentOutOfRangeException(nameof(group));
 		return ServerAsync.Run(token => InitializationCache.CloudProviders[group].GetAsync().WaitAsync(token));
 	}
+
+	public static IAsyncAction RefreshJumpListAsync() => ServerAsync.Run(token => JumpListCatalog.RefreshAsync().WaitAsync(token));
+
+	public static IAsyncAction AddJumpListFolderAsync(string path) => ServerAsync.Run(token => JumpListCatalog.AddAsync(path).WaitAsync(token));
+
+	public static IAsyncAction RemoveJumpListFolderAsync(string path) => ServerAsync.Run(token => JumpListCatalog.RemoveAsync(path).WaitAsync(token));
+
+	public static IAsyncOperation<IReadOnlyList<string>> GetJumpListFoldersAsync() => ServerAsync.Run(token => JumpListCatalog.GetAsync().WaitAsync(token));
 
 	public static void BeginUpdate() => ServerHost.BeginUpdate();
 

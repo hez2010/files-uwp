@@ -204,6 +204,7 @@ internal static class ServerHost
 		settings.Dispose();
 		await InvokeAsync(() =>
 		{
+			StartupServices.Stop();
 			tray?.Dispose();
 			tray = null;
 		});

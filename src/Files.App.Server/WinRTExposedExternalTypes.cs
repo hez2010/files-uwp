@@ -10,6 +10,7 @@ using WinRT;
 [assembly: GeneratedWinRTExposedExternalType(typeof(ReadOnlyCollection<CloudProviderInfo>))]
 [assembly: GeneratedWinRTExposedExternalType(typeof(ReadOnlyCollection<LibraryInfo>))]
 [assembly: GeneratedWinRTExposedExternalType(typeof(string[]))]
+[assembly: GeneratedWinRTExposedExternalType(typeof(ReadOnlyCollection<ShellLocationInfo>))]
 
 [assembly: GeneratedWinRTExposedExternalType(typeof(ServerAsyncOperation<bool>))]
 [assembly: GeneratedWinRTExposedExternalType(typeof(ServerAsyncOperation<ShellNewEntryInfo>))]
@@ -18,3 +19,4 @@ using WinRT;
 [assembly: GeneratedWinRTExposedExternalType(typeof(ServerAsyncOperation<IReadOnlyList<PinnedFolderInfo>>))]
 [assembly: GeneratedWinRTExposedExternalType(typeof(ServerAsyncOperation<IReadOnlyList<CloudProviderInfo>>))]
 [assembly: GeneratedWinRTExposedExternalType(typeof(ServerAsyncOperation<IReadOnlyList<LibraryInfo>>))]
+[assembly: GeneratedWinRTExposedExternalType(typeof(ServerAsyncOperation<IReadOnlyList<ShellLocationInfo>>))]

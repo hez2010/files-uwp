@@ -57,6 +57,10 @@ public sealed partial class AppService : IDisposable
 		return ServerAsync.Run(token => InitializationCache.CloudProviders[group].GetAsync().WaitAsync(token));
 	}
 
+	public static IAsyncOperation<IReadOnlyList<ShellLocationInfo>> GetRecentItemsAsync(bool folders) => ServerAsync.Run(token => (folders ? LocationCatalog.RecentFolders : LocationCatalog.RecentFiles).GetAsync().WaitAsync(token));
+
+	public static IAsyncOperation<IReadOnlyList<ShellLocationInfo>> GetNetworkLocationsAsync(bool shortcuts) => ServerAsync.Run(token => (shortcuts ? LocationCatalog.NetworkShortcuts : LocationCatalog.NetworkComputers).GetAsync().WaitAsync(token));
+
 	public static void BeginUpdate() => ServerHost.BeginUpdate();
 
 	public static void EndUpdate() => ServerHost.EndUpdate();

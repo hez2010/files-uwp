@@ -248,6 +248,37 @@ namespace Files.App.Data.Items
 			DriveHelpers.EjectDeviceAsync(drivePath);
 		}
 
+		internal void UpdateFrom(DriveItem item)
+		{
+			Text = item.Text;
+			Root = item.Root;
+			DeviceID = item.DeviceID;
+			Path = item.Path;
+			MenuOptions = item.MenuOptions;
+			if (Type != item.Type)
+			{
+				Type = item.Type;
+				OnPropertyChanged(nameof(Type));
+				OnPropertyChanged(nameof(TypeText));
+				OnPropertyChanged(nameof(IsRemovable));
+				OnPropertyChanged(nameof(IsNetwork));
+				OnPropertyChanged(nameof(ItemDecorator));
+			}
+			OnPropertyChanged(nameof(MenuOptions));
+
+			if (!(IconData ?? []).SequenceEqual(item.IconData ?? []))
+			{
+				var data = item.IconData;
+				IconData = data;
+				_ = MainWindow.Instance.DispatcherQueue.EnqueueOrInvokeAsync(async () =>
+				{
+					var image = await data.ToBitmapAsync();
+					if (ReferenceEquals(IconData, data))
+						Icon = image;
+				});
+			}
+		}
+
 		internal static DriveItem FromServer(Server.DriveItemInfo info)
 		{
 			var icon = info.Icon;
@@ -267,7 +298,6 @@ namespace Files.App.Data.Items
 				ShowShellItems = true,
 				ShowProperties = true,
 			};
-			_ = MainWindow.Instance.DispatcherQueue.EnqueueOrInvokeAsync(item.UpdatePropertiesAsync);
 			return item;
 		}
 

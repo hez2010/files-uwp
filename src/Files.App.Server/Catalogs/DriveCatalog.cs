@@ -2,12 +2,10 @@
 // Licensed under the MIT License.
 
 using System.Collections.Concurrent;
-using Files.Core.Storage.EventArguments;
+using Files.Storage;
 using Windows.Devices.Enumeration;
 using Windows.Devices.Portable;
 using Windows.Storage;
-using Files.App.Data.Enums;
-using Files.App.Utils.Storage;
 
 namespace Files.App.Server;
 
@@ -85,7 +83,7 @@ internal static class DriveCatalog
 				var info = await Task.Factory.StartNew(() =>
 				{
 					var drive = new System.IO.DriveInfo(id);
-					return (Ready: drive.IsReady, Label: DriveLabel.GetExtendedDriveLabel(drive), Type: drive.DriveType);
+					return (Ready: drive.IsReady || IsUnauthorizedDrive(drive), Label: DriveLabel.GetExtendedDriveLabel(drive), Type: drive.DriveType);
 				}, CancellationToken.None, TaskCreationOptions.LongRunning, TaskScheduler.Default);
 				if (!info.Ready)
 					return null;
@@ -113,6 +111,29 @@ internal static class DriveCatalog
 
 			return new DriveItemInfo(id, root, name, label, kind, icon);
 		}, Program.Logger);
+	}
+
+	private static bool IsUnauthorizedDrive(System.IO.DriveInfo driveInfo)
+	{
+		try
+		{
+			_ = Directory.EnumerateFileSystemEntries(driveInfo.Name).FirstOrDefault();
+			return false;
+		}
+		catch (UnauthorizedAccessException)
+		{
+			// probably BitLocker locked drive.
+			return true;
+		}
+		catch (IOException ex) when (ex.HResult == unchecked((int)0x80310000)) // FVE_E_LOCKED_VOLUME
+		{
+			// BitLocker locked drive.
+			return true;
+		}
+		catch
+		{
+			return false;
+		}
 	}
 
 	internal static Task<DrivePropertiesInfo> GetPropertiesAsync(string path, bool cloud) => properties.GetOrAdd((path, cloud),

@@ -46,7 +46,6 @@ namespace Files.App.Data.Models
 			await SafetyExtensions.IgnoreExceptions(async () =>
 			{
 				await UpdateDrivesAsync();
-				await folderSizeProvider.CleanAsync();
 			}, logger);
 		}
 
@@ -56,14 +55,33 @@ namespace Files.App.Data.Models
 
 			try
 			{
-				lock (Drives)
-					Drives.Clear();
-
+				var present = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 				await foreach (IFolder item in removableDrivesService.GetDrivesAsync())
 				{
+					present.Add(item.Id);
+					IFolder? existing;
 					lock (Drives)
-						InsertSorted(item);
+					{
+						existing = Drives.FirstOrDefault(drive => string.Equals(drive.Id, item.Id, StringComparison.OrdinalIgnoreCase));
+						if (existing is null)
+							InsertSorted(item);
+					}
+					if (existing is DriveItem current && item is DriveItem updated)
+						current.UpdateFrom(updated);
+					if ((existing ?? item) is DriveItem driveItem)
+						_ = MainWindow.Instance.DispatcherQueue.EnqueueOrInvokeAsync(driveItem.UpdatePropertiesAsync);
 				}
+
+				bool removed;
+				lock (Drives)
+				{
+					var missing = Drives.Where(drive => !present.Contains(drive.Id)).ToList();
+					removed = missing.Count > 0;
+					foreach (var drive in missing)
+						Drives.Remove(drive);
+				}
+				if (removed)
+					await folderSizeProvider.CleanAsync();
 
 				var osDrive = await removableDrivesService.GetPrimaryDriveAsync();
 

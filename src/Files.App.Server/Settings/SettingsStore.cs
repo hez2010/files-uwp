@@ -73,7 +73,7 @@ internal sealed class SettingsStore
 						foreach (var property in document.RootElement.EnumerateObject())
 							result[property.Name] = property.Value.Clone();
 				}
-				catch (JsonException ex) when (!fresh)
+				catch (JsonException ex)
 				{
 					Program.Logger.LogWarning(ex, "Could not read settings.");
 					return values ?? result;

@@ -142,6 +142,8 @@ internal static class ServerHost
 		}
 	}
 
+	internal static nint GetDialogWindowHandle() => (tray ??= new SystemTrayIcon()).WindowHandle;
+
 	internal static bool ActivateWindow()
 	{
 		ClientWindow[] windows;
@@ -204,6 +206,7 @@ internal static class ServerHost
 		settings.Dispose();
 		await InvokeAsync(() =>
 		{
+			StartupServices.Stop();
 			tray?.Dispose();
 			tray = null;
 		});

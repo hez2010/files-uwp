@@ -57,6 +57,8 @@ public sealed partial class AppService : IDisposable
 		return ServerAsync.Run(token => InitializationCache.CloudProviders[group].GetAsync().WaitAsync(token));
 	}
 
+	public static IAsyncOperation<IReadOnlyList<TaggedFileInfo>> GetTaggedFilesAsync() => ServerAsync.Run(token => TagCatalog.Items.GetAsync().WaitAsync(token));
+
 	public static void BeginUpdate() => ServerHost.BeginUpdate();
 
 	public static void EndUpdate() => ServerHost.EndUpdate();

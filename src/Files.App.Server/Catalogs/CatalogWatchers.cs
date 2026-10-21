@@ -1,7 +1,7 @@
 // Copyright (c) Files Community
 // Licensed under the MIT License.
 
-using Files.App.Storage.Watchers;
+using Files.Storage;
 using Microsoft.Extensions.Logging;
 using System.IO.Enumeration;
 
@@ -11,7 +11,7 @@ internal static class CatalogWatchers
 {
 	private static readonly List<FileSystemWatcher> watchers = [];
 	private static readonly Lazy<bool> initialized = new(Start);
-	private static Files.Core.Storage.Contracts.ITrashWatcher? recycleBin;
+	private static Files.Storage.ITrashWatcher? recycleBin;
 
 	internal static void Initialize() => _ = initialized.Value;
 
@@ -24,15 +24,15 @@ internal static class CatalogWatchers
 		recycleBin.ItemDeleted += OnRecycleBinChanged;
 		recycleBin.ItemChanged += OnRecycleBinChanged;
 		recycleBin.ItemRenamed += OnRecycleBinChanged;
-		recycleBin.RefreshRequested += OnRecycleBinChanged;
+		recycleBin.RefreshRequested += OnRecycleBinRefreshRequested;
 		return true;
 	}
 
 	private static void OnRecycleBinChanged(object? sender, FileSystemEventArgs e)
-	{
-		RecycleBinCatalog.Invalidate();
-		ServerEvents.Notify(ServerChangeNames.RecycleBin);
-	}
+		=> RecycleBinCatalog.RecordChange(e, refresh: false);
+
+	private static void OnRecycleBinRefreshRequested(object? sender, FileSystemEventArgs e)
+		=> RecycleBinCatalog.RecordChange(e, refresh: true);
 
 	private static void Watch(string directory, string filter, Action changed)
 	{

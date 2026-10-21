@@ -181,6 +181,26 @@ namespace Files.Storage
 			return list;
 		}
 
+		public IEnumerable<TaggedFile> GetAllUnderPath(string folderPath)
+		{
+			folderPath = folderPath.Replace('/', '\\').TrimStart('\\');
+			var list = new List<TaggedFile>();
+
+			if (FileTagsKey is not null)
+			{
+				try
+				{
+					IterateKeys(list, CombineKeys(FileTagsKey, folderPath), 0);
+				}
+				catch (SecurityException)
+				{
+					// Handle edge case where IterateKeys results in SecurityException
+				}
+			}
+
+			return list;
+		}
+
 		public void ReplaceAll(TaggedFile[]? tags)
 		{
 			if (FileTagsKey is null)

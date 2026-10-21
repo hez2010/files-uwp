@@ -84,8 +84,7 @@ namespace Files.App.Helpers
 			if (switchToNewTab)
 				App.AppModel.TabStripSelectedIndex = index;
 
-			_ = SafetyExtensions.IgnoreExceptions(() => UpdateTabInfoAsync(tabItem, path), App.Logger);
-			await Task.Yield();
+			await SafetyExtensions.IgnoreExceptions(() => UpdateTabInfoAsync(tabItem, path), App.Logger);
 		}
 
 		public static async Task AddNewTabByParamAsync(Type type, object? tabViewItemArgs, int atIndex = -1, bool switchToNewTab = true)
@@ -112,8 +111,7 @@ namespace Files.App.Helpers
 			if (switchToNewTab)
 				App.AppModel.TabStripSelectedIndex = index;
 
-			_ = SafetyExtensions.IgnoreExceptions(() => UpdateTabInfoAsync(tabItem, tabViewItemArgs), App.Logger);
-			await Task.Yield();
+			await SafetyExtensions.IgnoreExceptions(() => UpdateTabInfoAsync(tabItem, tabViewItemArgs), App.Logger);
 		}
 
 		private static string GetInitialTabHeader(object? navigationArg)

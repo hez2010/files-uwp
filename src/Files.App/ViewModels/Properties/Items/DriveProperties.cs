@@ -86,7 +86,7 @@ namespace Files.App.ViewModels.Properties
 					ViewModel.DriveFileSystem = syncRootStatus.FileSystem;
 					ViewModel.DriveCapacityValue = syncRootStatus.Capacity;
 					ViewModel.DriveUsedSpaceValue = (syncRootStatus.Capacity - syncRootStatus.FreeSpace);
-					ViewModel.DriveFreeSpaceValue = syncRootStatus.Capacity - (syncRootStatus.Capacity - syncRootStatus.FreeSpace);
+					ViewModel.DriveFreeSpaceValue = syncRootStatus.FreeSpace;
 					return;
 				}
 			}

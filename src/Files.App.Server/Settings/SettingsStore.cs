@@ -19,11 +19,15 @@ internal sealed class SettingsStore
 	internal static event Action<string>? Changed;
 	private long length;
 	private readonly FileSystemWatcher watcher;
-	private readonly List<Func<Dictionary<string, JsonElement>, bool>> pendingWrites = [];
+	private readonly Dictionary<string, SettingChange> pendingWrites = new(StringComparer.Ordinal);
+	private long? replacementVersion;
 	private bool writing;
 	private long version;
 	private long persistedVersion;
 	private long writeFailures;
+
+	// Null Data removes a key; a JSON null remains a stored value.
+	private readonly record struct SettingChange(long Version, JsonElement? Data);
 
 	private SettingsStore(string fileName)
 	{
@@ -66,8 +70,7 @@ internal sealed class SettingsStore
 		if (!invalidated && values is not null && file.LastWriteTimeUtc == lastWrite && (file.Exists ? file.Length : 0) == length)
 			return values;
 		var result = ReadFile(values ?? []);
-		foreach (var change in pendingWrites)
-			change(result);
+		ApplyChanges(result, pendingWrites, replacementVersion.HasValue);
 		values = result;
 		invalidated = false;
 		lastWrite = file.LastWriteTimeUtc;
@@ -131,39 +134,16 @@ internal sealed class SettingsStore
 	internal bool Set(string key, SettingsValue[] value, bool remove)
 	{
 		var element = remove ? default : SettingsValueCodec.Decode(value);
-		return Mutate(data =>
-		{
-			if (remove)
-				return data.Remove(key);
-			if (data.TryGetValue(key, out var old) && JsonElement.DeepEquals(old, element))
-				return false;
-			data[key] = element;
-			return true;
-		});
-	}
-
-	internal bool Import(SettingsValue[] properties)
-	{
-		var replacement = SettingsValueCodec.DecodeObject(properties);
-		return Mutate(data =>
-		{
-			data.Clear();
-			foreach (var pair in replacement)
-				data.Add(pair.Key, pair.Value);
-			return true;
-		});
-	}
-
-	private bool Mutate(Func<Dictionary<string, JsonElement>, bool> mutate)
-	{
 		bool changed;
 		lock (gate)
 		{
-			changed = mutate(values ?? Read());
+			var data = values ?? Read();
+			changed = remove ? data.Remove(key) : !data.TryGetValue(key, out var old) || !JsonElement.DeepEquals(old, element);
 			if (changed)
 			{
-				pendingWrites.Add(mutate);
-				version++;
+				if (!remove)
+					data[key] = element;
+				pendingWrites[key] = new(++version, remove ? null : element);
 			}
 			StartWriter();
 		}
@@ -175,9 +155,39 @@ internal sealed class SettingsStore
 		return changed;
 	}
 
+	internal bool Import(SettingsValue[] properties)
+	{
+		var replacement = SettingsValueCodec.DecodeObject(properties);
+		lock (gate)
+		{
+			values = replacement;
+			replacementVersion = ++version;
+			pendingWrites.Clear();
+			foreach (var pair in replacement)
+				pendingWrites[pair.Key] = new(version, pair.Value);
+			StartWriter();
+		}
+		Changed?.Invoke(fileName);
+		ServerEvents.Notify(ServerChangeNames.Settings(fileName));
+		return true;
+	}
+
+	private static void ApplyChanges(Dictionary<string, JsonElement> data, IEnumerable<KeyValuePair<string, SettingChange>> changes, bool replace)
+	{
+		if (replace)
+			data.Clear();
+		foreach (var change in changes)
+		{
+			if (change.Value.Data is { } value)
+				data[change.Key] = value;
+			else
+				data.Remove(change.Key);
+		}
+	}
+
 	private void StartWriter()
 	{
-		if (writing || pendingWrites.Count == 0)
+		if (writing || (pendingWrites.Count == 0 && !replacementVersion.HasValue))
 			return;
 		writing = true;
 		_ = Task.Run(PersistPendingChanges);
@@ -189,18 +199,20 @@ internal sealed class SettingsStore
 		{
 			while (true)
 			{
-				Func<Dictionary<string, JsonElement>, bool>[] batch;
+				KeyValuePair<string, SettingChange>[] batch;
+				bool replace;
 				Dictionary<string, JsonElement> fallback;
 				long batchVersion;
 				lock (gate)
 				{
-					if (pendingWrites.Count == 0)
+					if (pendingWrites.Count == 0 && !replacementVersion.HasValue)
 					{
 						writing = false;
 						Monitor.PulseAll(gate);
 						return;
 					}
 					batch = pendingWrites.ToArray();
+					replace = replacementVersion.HasValue;
 					fallback = new(values!);
 					batchVersion = version;
 				}
@@ -208,18 +220,19 @@ internal sealed class SettingsStore
 				// Merge against disk under the shared lease so elevated servers cannot lose each other's writes.
 				using var lease = FileWriteLease.Acquire(path);
 				var data = ReadFile(fallback);
-				foreach (var change in batch)
-					change(data);
+				ApplyChanges(data, batch, replace);
 				WriteFile(data);
 				var file = new FileInfo(path);
 				var lastWriteTime = file.LastWriteTimeUtc;
 				var fileLength = file.Length;
 				lock (gate)
 				{
-					pendingWrites.RemoveRange(0, batch.Length);
+					foreach (var key in pendingWrites.Where(pair => pair.Value.Version <= batchVersion).Select(pair => pair.Key).ToArray())
+						pendingWrites.Remove(key);
+					if (replacementVersion is { } replaceVersion && replaceVersion <= batchVersion)
+						replacementVersion = null;
 					values = data;
-					foreach (var change in pendingWrites)
-						change(values);
+					ApplyChanges(values, pendingWrites, replacementVersion.HasValue);
 					persistedVersion = batchVersion;
 					lastWrite = lastWriteTime;
 					length = fileLength;

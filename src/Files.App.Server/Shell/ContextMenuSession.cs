@@ -109,6 +109,4 @@ public sealed partial class ContextMenuSession : IDisposable
 			gate.Release();
 		}
 	}
-
-	~ContextMenuSession() => menu.Dispose();
 }

@@ -68,7 +68,7 @@ namespace Files.App.Utils.Storage
 		{
 			try
 			{
-				var buffer = await Server.AppService.GetIconAsync(path ?? string.Empty, size, isFolder, options, overlay);
+				var buffer = await Server.IconService.GetIconAsync(path ?? string.Empty, size, isFolder, options, overlay);
 				return buffer.Length == 0 ? null : buffer.ToArray();
 			}
 			catch (COMException ex)

@@ -201,6 +201,16 @@
                 <Path>Files.App.Server\Files.App.Server.exe</Path>
                 <Instancing>singleInstance</Instancing>
                 <ActivatableClass ActivatableClassId="Files.App.Server.AppService" />
+                <ActivatableClass ActivatableClassId="Files.App.Server.DriveService" />
+                <ActivatableClass ActivatableClassId="Files.App.Server.FileTagsService" />
+                <ActivatableClass ActivatableClassId="Files.App.Server.IconService" />
+                <ActivatableClass ActivatableClassId="Files.App.Server.JumpListService" />
+                <ActivatableClass ActivatableClassId="Files.App.Server.LocationService" />
+                <ActivatableClass ActivatableClassId="Files.App.Server.PinnedFoldersService" />
+                <ActivatableClass ActivatableClassId="Files.App.Server.RecycleBinService" />
+                <ActivatableClass ActivatableClassId="Files.App.Server.SettingsService" />
+                <ActivatableClass ActivatableClassId="Files.App.Server.ShellService" />
+                <ActivatableClass ActivatableClassId="Files.App.Server.UpdateService" />
             </OutOfProcessServer>
         </Extension>
     </Extensions>

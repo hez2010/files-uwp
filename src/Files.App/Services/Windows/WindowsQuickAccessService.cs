@@ -18,7 +18,7 @@ namespace Files.App.Services
 
 		public async Task<IEnumerable<ShellFileItem>> GetPinnedFoldersAsync()
 		{
-			var folders = await Server.AppService.GetPinnedFoldersAsync();
+			var folders = await Server.PinnedFoldersService.GetPinnedFoldersAsync();
 			return folders.Select(folder => new ShellFileItem
 			{
 				IsFolder = true,
@@ -46,7 +46,7 @@ namespace Files.App.Services
 				}
 			}
 
-			Server.AppService.InvalidatePinnedFolders();
+			Server.PinnedFoldersService.InvalidatePinnedFolders();
 			await App.QuickAccessManager.Model.LoadAsync();
 			if (doUpdateQuickAccessWidget)
 				App.QuickAccessManager.UpdateQuickAccessWidget?.Invoke(this, new ModifyQuickAccessEventArgs(folderPaths, true));
@@ -94,13 +94,13 @@ namespace Files.App.Services
 
 				if (result.Failed)
 				{
-					Server.AppService.InvalidatePinnedFolders();
+					Server.PinnedFoldersService.InvalidatePinnedFolders();
 					await App.QuickAccessManager.Model.LoadAsync();
 					return false;
 				}
 			}
 
-			Server.AppService.InvalidatePinnedFolders();
+			Server.PinnedFoldersService.InvalidatePinnedFolders();
 			await App.QuickAccessManager.Model.LoadAsync();
 			if (doUpdateQuickAccessWidget)
 				App.QuickAccessManager.UpdateQuickAccessWidget?.Invoke(this, new ModifyQuickAccessEventArgs(folderPaths, false));
@@ -184,7 +184,7 @@ namespace Files.App.Services
 
 		private async Task<string[]> GetPinnedFolderPathsAsync()
 		{
-			Server.AppService.InvalidatePinnedFolders();
+			Server.PinnedFoldersService.InvalidatePinnedFolders();
 			return GetPinnedPaths(await GetPinnedFoldersAsync());
 		}
 
@@ -242,8 +242,8 @@ namespace Files.App.Services
 			if (desiredItems.SequenceEqual(App.QuickAccessManager.Model.PinnedFolders, StringComparer.OrdinalIgnoreCase))
 				return;
 
-			var server = await App.ServerSession;
-			server.BeginPinnedFoldersUpdate();
+			var pinnedFolders = (await App.ServerSession).PinnedFolders;
+			pinnedFolders.BeginUpdate();
 			try
 			{
 				using (App.QuickAccessManager.Model.SuspendSync())
@@ -274,7 +274,7 @@ namespace Files.App.Services
 			}
 			finally
 			{
-				SafetyExtensions.IgnoreExceptions(server.EndPinnedFoldersUpdate, App.Logger);
+				SafetyExtensions.IgnoreExceptions(pinnedFolders.EndUpdate, App.Logger);
 			}
 		}
 	}

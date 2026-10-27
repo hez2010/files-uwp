@@ -13,16 +13,16 @@ public sealed class WindowsJumpListService : IWindowsJumpListService
 	}
 
 	public async Task AddFolderAsync(string path)
-		=> await SafetyExtensions.IgnoreExceptions(async () => await Server.AppService.AddJumpListFolderAsync(path), App.Logger);
+		=> await SafetyExtensions.IgnoreExceptions(async () => await Server.JumpListService.AddJumpListFolderAsync(path), App.Logger);
 
 	public async Task RemoveFolderAsync(string path)
-		=> await SafetyExtensions.IgnoreExceptions(async () => await Server.AppService.RemoveJumpListFolderAsync(path), App.Logger);
+		=> await SafetyExtensions.IgnoreExceptions(async () => await Server.JumpListService.RemoveJumpListFolderAsync(path), App.Logger);
 
 	public async Task<IEnumerable<string>> GetFoldersAsync()
-		=> (await Server.AppService.GetJumpListFoldersAsync()).ToArray();
+		=> (await Server.JumpListService.GetJumpListFoldersAsync()).ToArray();
 
 	public async Task RefreshPinnedFoldersAsync()
-		=> await SafetyExtensions.IgnoreExceptions(async () => await Server.AppService.RefreshJumpListAsync(), App.Logger);
+		=> await SafetyExtensions.IgnoreExceptions(async () => await Server.JumpListService.RefreshJumpListAsync(), App.Logger);
 
 	private async void OnQuickAccessChanged(object? sender, ModifyQuickAccessEventArgs e)
 		=> await RefreshPinnedFoldersAsync();

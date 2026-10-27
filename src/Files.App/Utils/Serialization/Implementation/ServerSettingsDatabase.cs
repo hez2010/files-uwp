@@ -26,7 +26,7 @@ internal sealed class ServerSettingsDatabase : IJsonSettingsDatabase
 		App.ServerChanged += OnServerChanged;
 	}
 
-	private Dictionary<string, JsonElement> ReadValues() => SettingsValueCodec.DecodeObject(Server.AppService.GetSettings(fileName));
+	private Dictionary<string, JsonElement> ReadValues() => SettingsValueCodec.DecodeObject(Server.SettingsService.GetSettings(fileName));
 
 	public TValue? GetValue<TValue>(string key, TValue? defaultValue = default)
 	{
@@ -44,7 +44,7 @@ internal sealed class ServerSettingsDatabase : IJsonSettingsDatabase
 	public bool SetValue<TValue>(string key, TValue? value)
 	{
 		var element = GetElementFromValue(value);
-		var changed = Server.AppService.SetSetting(fileName, key, SettingsValueCodec.Encode(element));
+		var changed = Server.SettingsService.SetSetting(fileName, key, SettingsValueCodec.Encode(element));
 		lock (gate)
 		{
 			var localChanged = !cache.TryGetValue(key, out var old) || !JsonElement.DeepEquals(old, element);
@@ -57,7 +57,7 @@ internal sealed class ServerSettingsDatabase : IJsonSettingsDatabase
 
 	public bool RemoveKey(string key)
 	{
-		var changed = Server.AppService.RemoveSetting(fileName, key);
+		var changed = Server.SettingsService.RemoveSetting(fileName, key);
 		lock (gate)
 		{
 			cache.Remove(key);
@@ -76,7 +76,7 @@ internal sealed class ServerSettingsDatabase : IJsonSettingsDatabase
 		};
 		if (values is null)
 			return false;
-		var changed = Server.AppService.ImportSettings(fileName, SettingsValueCodec.EncodeObject(values));
+		var changed = Server.SettingsService.ImportSettings(fileName, SettingsValueCodec.EncodeObject(values));
 		var flushed = FlushSettings();
 		var fresh = ReadValues();
 		lock (gate)
@@ -89,7 +89,7 @@ internal sealed class ServerSettingsDatabase : IJsonSettingsDatabase
 
 	public IDictionary<string, JsonElement> ExportSettings() => ReadValues();
 
-	public bool FlushSettings() => Server.AppService.FlushSettings(fileName);
+	public bool FlushSettings() => Server.SettingsService.FlushSettings(fileName);
 
 	private JsonTypeInfo<T?> GetTypeInfo<T>() => context.GetTypeInfo(typeof(T)) as JsonTypeInfo<T?>
 		?? throw new InvalidOperationException($"JSON serialization metadata is missing for {typeof(T)}.");

@@ -52,7 +52,7 @@ public sealed partial class ContextMenu : Win32ContextMenu, IDisposable
 	public static async Task<ContextMenu?> GetContextMenuForFiles(string?[] paths, uint flags, Func<string?, bool>? itemFilter = null)
 	{
 		var validPaths = paths.OfType<string>().Where(path => !string.IsNullOrEmpty(path)).ToArray();
-		var session = await Server.AppService.GetContextMenuAsync(validPaths, flags);
+		var session = await Server.ShellService.GetContextMenuAsync(validPaths, flags);
 		if (session is null)
 			return null;
 		try

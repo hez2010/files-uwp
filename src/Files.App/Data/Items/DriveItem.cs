@@ -335,7 +335,7 @@ namespace Files.App.Data.Items
 		{
 			try
 			{
-				var properties = await Server.AppService.GetDrivePropertiesAsync(Path ?? Root?.Path ?? string.Empty, Type == DriveType.CloudDrive);
+				var properties = await Server.DriveService.GetDrivePropertiesAsync(Path ?? Root?.Path ?? string.Empty, Type == DriveType.CloudDrive);
 				MaxSpace = ByteSize.FromBytes(properties.Capacity);
 				FreeSpace = ByteSize.FromBytes(properties.FreeSpace);
 				SpaceUsed = MaxSpace - FreeSpace;

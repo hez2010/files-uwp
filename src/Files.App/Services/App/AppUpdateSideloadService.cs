@@ -84,18 +84,18 @@ namespace Files.App.Services
 
 		public async Task CheckForUpdatesAsync()
 		{
-			var available = await SafetyExtensions.IgnoreExceptions(async () => await Server.AppService.CheckSideloadUpdatesAsync(), Logger);
+			var available = await SafetyExtensions.IgnoreExceptions(async () => await Server.UpdateService.CheckSideloadUpdatesAsync(), Logger);
 			await MainWindow.Instance.DispatcherQueue.EnqueueOrInvokeAsync(() => IsUpdateAvailable = available);
 		}
 
 		public async Task CheckAndUpdateFilesLauncherAsync()
 		{
-			await SafetyExtensions.IgnoreExceptions(async () => await Server.AppService.UpdateLauncherAsync(), App.Logger);
+			await SafetyExtensions.IgnoreExceptions(async () => await Server.UpdateService.UpdateLauncherAsync(), App.Logger);
 		}
 
 		public async Task CheckForReleaseNotesAsync()
 		{
-			AreReleaseNotesAvailable = await SafetyExtensions.IgnoreExceptions(async () => await Server.AppService.CheckReleaseNotesAsync(), App.Logger);
+			AreReleaseNotesAvailable = await SafetyExtensions.IgnoreExceptions(async () => await Server.UpdateService.CheckReleaseNotesAsync(), App.Logger);
 		}
 
 		private async Task ApplyPackageUpdateAsync()
@@ -111,11 +111,11 @@ namespace Files.App.Services
 			try
 			{
 				PackageManager packageManager = new PackageManager();
-				if (!Server.AppService.FlushAllSettings())
+				if (!Server.SettingsService.FlushAllSettings())
 					throw new System.IO.IOException("Could not save settings before installing the update.");
 
 				var restartStatus = PInvoke.RegisterApplicationRestart(null, (REGISTER_APPLICATION_RESTART_FLAGS)0);
-				serverUpdateStarted = SafetyExtensions.IgnoreExceptions(Server.AppService.BeginUpdate, Logger);
+				serverUpdateStarted = SafetyExtensions.IgnoreExceptions(Server.UpdateService.BeginUpdate, Logger);
 
 				Logger?.LogInformation($"Register for restart: {restartStatus}");
 
@@ -149,7 +149,7 @@ namespace Files.App.Services
 			finally
 			{
 				if (serverUpdateStarted)
-					SafetyExtensions.IgnoreExceptions(Server.AppService.EndUpdate, Logger);
+					SafetyExtensions.IgnoreExceptions(Server.UpdateService.EndUpdate, Logger);
 
 				// Reset fields
 				IsUpdating = false;

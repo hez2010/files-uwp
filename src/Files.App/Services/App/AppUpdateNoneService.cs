@@ -32,7 +32,7 @@ namespace Files.App.Services
 
 		public async Task CheckForReleaseNotesAsync()
 		{
-			AreReleaseNotesAvailable = await SafetyExtensions.IgnoreExceptions(async () => await Server.AppService.CheckReleaseNotesAsync(), App.Logger);
+			AreReleaseNotesAvailable = await SafetyExtensions.IgnoreExceptions(async () => await Server.UpdateService.CheckReleaseNotesAsync(), App.Logger);
 		}
 
 		public Task DownloadMandatoryUpdatesAsync()

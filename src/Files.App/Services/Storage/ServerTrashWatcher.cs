@@ -32,7 +32,7 @@ internal sealed partial class ServerTrashWatcher : ITrashWatcher
 		await SafetyExtensions.IgnoreExceptions(async () =>
 		{
 			var server = await App.ServerSession;
-			foreach (var change in server.GetRecycleBinChanges())
+			foreach (var change in server.RecycleBin.GetChanges())
 			{
 				var type = change.Kind switch
 				{

@@ -78,7 +78,7 @@ namespace Files.App.Services
 
 		private static async Task<IEnumerable<IFolder>> GetLocationsAsync(bool shortcuts)
 		{
-			var locations = await Server.AppService.GetNetworkLocationsAsync(shortcuts);
+			var locations = await Server.LocationService.GetNetworkLocationsAsync(shortcuts);
 			return locations.Select(item => new DriveItem
 			{
 				Text = item.Name,

@@ -19,7 +19,7 @@ namespace Files.App.Utils.FileTags
 
 		public async Task<IEnumerable<TaggedFile>> GetAllAsync()
 		{
-			var items = await Server.AppService.GetTaggedFilesAsync();
+			var items = await Server.FileTagsService.GetTaggedFilesAsync();
 			return items.Select(item => new TaggedFile { FilePath = item.Path, Frn = item.FileId, Tags = item.Tags }).ToArray();
 		}
 

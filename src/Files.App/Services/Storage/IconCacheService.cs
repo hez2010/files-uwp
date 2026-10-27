@@ -28,7 +28,7 @@ namespace Files.App.Services
 			byte[]? icon;
 			try
 			{
-				var buffer = await Server.AppService.GetGenericIconAsync(extension ?? string.Empty, isFolder, pixels);
+				var buffer = await Server.IconService.GetGenericIconAsync(extension ?? string.Empty, isFolder, pixels);
 				icon = buffer.Length == 0 ? null : buffer.ToArray();
 			}
 			catch (COMException ex)

@@ -17,8 +17,8 @@ namespace Files.App.Services
 
 		public async IAsyncEnumerable<IFolder> GetDrivesAsync()
 		{
-			var ids = await Server.AppService.GetDriveIdsAsync();
-			var pending = ids.Select(id => Server.AppService.GetDriveAsync(id).AsTask()).ToArray();
+			var ids = await Server.DriveService.GetDriveIdsAsync();
+			var pending = ids.Select(id => Server.DriveService.GetDriveAsync(id).AsTask()).ToArray();
 			await foreach (var completed in Task.WhenEach(pending))
 			{
 				var info = await SafetyExtensions.IgnoreExceptions(() => completed, App.Logger);

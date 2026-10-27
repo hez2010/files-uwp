@@ -128,17 +128,17 @@ namespace Files.App.Services
 
 		public async Task CheckForReleaseNotesAsync()
 		{
-			AreReleaseNotesAvailable = await SafetyExtensions.IgnoreExceptions(async () => await Server.AppService.CheckReleaseNotesAsync(), App.Logger);
+			AreReleaseNotesAvailable = await SafetyExtensions.IgnoreExceptions(async () => await Server.UpdateService.CheckReleaseNotesAsync(), App.Logger);
 		}
 
 		private async Task DownloadAndInstallAsync()
 		{
 			// Save the updated tab list before installing the update
 			AppLifecycleHelper.SaveSessionTabs();
-			if (!Server.AppService.FlushAllSettings())
+			if (!Server.SettingsService.FlushAllSettings())
 				throw new System.IO.IOException("Could not save settings before installing the update.");
 
-			var serverUpdateStarted = SafetyExtensions.IgnoreExceptions(Server.AppService.BeginUpdate, App.Logger);
+			var serverUpdateStarted = SafetyExtensions.IgnoreExceptions(Server.UpdateService.BeginUpdate, App.Logger);
 
 			try
 			{
@@ -166,7 +166,7 @@ namespace Files.App.Services
 			finally
 			{
 				if (serverUpdateStarted)
-					SafetyExtensions.IgnoreExceptions(Server.AppService.EndUpdate, App.Logger);
+					SafetyExtensions.IgnoreExceptions(Server.UpdateService.EndUpdate, App.Logger);
 			}
 		}
 
@@ -174,7 +174,7 @@ namespace Files.App.Services
 		{
 			try
 			{
-				_updatePackages = (await Server.AppService.GetStoreUpdatesAsync()).ToList();
+				_updatePackages = (await Server.UpdateService.GetStoreUpdatesAsync()).ToList();
 			}
 			catch (Exception ex)
 			{
@@ -209,7 +209,7 @@ namespace Files.App.Services
 
 		public async Task CheckAndUpdateFilesLauncherAsync()
 		{
-			await SafetyExtensions.IgnoreExceptions(async () => await Server.AppService.UpdateLauncherAsync(), App.Logger);
+			await SafetyExtensions.IgnoreExceptions(async () => await Server.UpdateService.UpdateLauncherAsync(), App.Logger);
 		}
 
 		private bool HasUpdates()

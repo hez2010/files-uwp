@@ -78,7 +78,7 @@ namespace Files.App.ViewModels.UserControls.Widgets
 					return;
 
 				var refreshVersion = ++_refreshVersion;
-				var folders = await Server.AppService.GetPinnedFoldersAsync();
+				var folders = await Server.PinnedFoldersService.GetPinnedFoldersAsync();
 
 				if (isDisposed || refreshVersion != _refreshVersion || folders is null)
 					return;

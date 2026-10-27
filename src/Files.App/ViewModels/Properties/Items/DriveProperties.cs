@@ -80,7 +80,7 @@ namespace Files.App.ViewModels.Properties
 
 			try
 			{
-				var syncRootStatus = await Server.AppService.GetDrivePropertiesAsync(drivePath, true);
+				var syncRootStatus = await Server.DriveService.GetDrivePropertiesAsync(drivePath, true);
 				if (syncRootStatus.Available)
 				{
 					ViewModel.DriveFileSystem = syncRootStatus.FileSystem;

@@ -39,7 +39,7 @@ namespace Files.App.Services
 				_ = SafetyExtensions.IgnoreExceptions(async () =>
 				{
 					var version = ++refreshVersion;
-					var value = await Server.AppService.HasRecycleBinItemsAsync();
+					var value = await Server.RecycleBinService.HasRecycleBinItemsAsync();
 					if (version != refreshVersion || hasItems == value)
 						return;
 					hasItems = value;
@@ -57,7 +57,7 @@ namespace Files.App.Services
 		/// <inheritdoc/>
 		public async Task<(bool HasRecycleBin, long NumItems, long BinSize)> QueryRecycleBinAsync(string drive = "")
 		{
-			var info = await Server.AppService.QueryRecycleBinAsync(drive);
+			var info = await Server.RecycleBinService.QueryRecycleBinAsync(drive);
 			return (info.Available, info.Count, info.Size);
 		}
 

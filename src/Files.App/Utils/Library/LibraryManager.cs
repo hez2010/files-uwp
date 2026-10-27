@@ -57,7 +57,7 @@ namespace Files.App.Utils.Library
 		{
 			try
 			{
-				var libraries = await Server.AppService.GetLibrariesAsync();
+				var libraries = await Server.LocationService.GetLibrariesAsync();
 				return libraries.Select(library => new LibraryLocationItem(new ShellLibraryItem
 				{
 					FullPath = library.FullPath,

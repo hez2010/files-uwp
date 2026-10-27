@@ -164,7 +164,7 @@ namespace Files.App.Services
 
 		private async Task<bool> UpdateRecentItemsAsync(bool folders)
 		{
-			var entries = await Server.AppService.GetRecentItemsAsync(folders);
+			var entries = await Server.LocationService.GetRecentItemsAsync(folders);
 			var items = entries.Select(entry => new RecentItem
 			{
 				Path = entry.Path,

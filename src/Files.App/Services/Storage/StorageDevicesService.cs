@@ -22,7 +22,9 @@ namespace Files.App.Services
 			await foreach (var completed in Task.WhenEach(pending))
 			{
 				var info = await SafetyExtensions.IgnoreExceptions(() => completed, App.Logger);
-				if (info is null || info.Label == "Google Drive" || info.Root.Path.Equals(App.AppModel.PCloudDrivePath, StringComparison.OrdinalIgnoreCase))
+				var pCloudDrivePath = App.AppModel.PCloudDrivePath;
+				if (info is null || info.Label == "Google Drive" ||
+					(!string.IsNullOrEmpty(pCloudDrivePath) && info.Root.Path.Equals(pCloudDrivePath, StringComparison.OrdinalIgnoreCase)))
 					continue;
 				yield return DriveItem.FromServer(info);
 			}

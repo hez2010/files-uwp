@@ -81,13 +81,33 @@ namespace Files.App.Utils.Library
 			var version = Interlocked.Increment(ref refreshVersion);
 			var items = await ListUserLibraries();
 			items.Sort();
+			var replacements = new List<NotifyCollectionChangedEventArgs>();
 			lock (libraries)
 			{
 				if (version != refreshVersion)
 					return;
+				for (int index = 0; index < items.Count; index++)
+				{
+					var item = items[index];
+					var previous = libraries.FirstOrDefault(library => string.Equals(library.Path, item.Path, StringComparison.OrdinalIgnoreCase));
+					if (previous is null)
+						continue;
+					if (previous.Text == item.Text && previous.IsDefaultLocation == item.IsDefaultLocation &&
+						string.Equals(previous.DefaultSaveFolder, item.DefaultSaveFolder, StringComparison.OrdinalIgnoreCase) &&
+						previous.Folders.SequenceEqual(item.Folders, StringComparer.OrdinalIgnoreCase))
+					{
+						items[index] = previous;
+					}
+					else
+					{
+						replacements.Add(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Replace, item, previous));
+					}
+				}
 				libraries.Clear();
 				libraries.AddRange(items);
 			}
+			foreach (var replacement in replacements)
+				DataChanged?.Invoke(SectionType.Library, replacement);
 			DataChanged?.Invoke(SectionType.Library, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset));
 		}
 

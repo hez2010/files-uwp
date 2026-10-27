@@ -11,7 +11,9 @@ internal static class CatalogWatchers
 {
 	private static readonly List<FileSystemWatcher> watchers = [];
 	private static readonly Lazy<bool> initialized = new(Start);
+	private static readonly Lock recycleBinGate = new();
 	private static Files.Storage.ITrashWatcher? recycleBin;
+	private static bool stopped;
 
 	internal static void Initialize() => _ = initialized.Value;
 
@@ -40,17 +42,30 @@ internal static class CatalogWatchers
 			LocationCatalog.NetworkShortcuts.Invalidate();
 			ServerEvents.Notify(ServerChangeNames.Network);
 		});
-#pragma warning disable CS0612 // Retain the existing Recycle Bin watcher implementation.
-		recycleBin = SafetyExtensions.IgnoreExceptions(() => new RecycleBinWatcher(), Program.Logger);
-#pragma warning restore CS0612
-		if (recycleBin is null)
-			return true;
-		recycleBin.ItemAdded += OnRecycleBinChanged;
-		recycleBin.ItemDeleted += OnRecycleBinChanged;
-		recycleBin.ItemChanged += OnRecycleBinChanged;
-		recycleBin.ItemRenamed += OnRecycleBinChanged;
-		recycleBin.RefreshRequested += OnRecycleBinRefreshRequested;
+		RefreshRecycleBinWatcher();
 		return true;
+	}
+
+	internal static void RefreshRecycleBinWatcher()
+	{
+		lock (recycleBinGate)
+		{
+			if (stopped)
+				return;
+			recycleBin?.Dispose();
+#pragma warning disable CS0612 // Retain the existing Recycle Bin watcher implementation.
+			recycleBin = SafetyExtensions.IgnoreExceptions(() => new RecycleBinWatcher(), Program.Logger);
+#pragma warning restore CS0612
+			if (recycleBin is not null)
+			{
+				recycleBin.ItemAdded += OnRecycleBinChanged;
+				recycleBin.ItemDeleted += OnRecycleBinChanged;
+				recycleBin.ItemChanged += OnRecycleBinChanged;
+				recycleBin.ItemRenamed += OnRecycleBinChanged;
+				recycleBin.RefreshRequested += OnRecycleBinRefreshRequested;
+			}
+			RecycleBinCatalog.RecordChange(new FileSystemEventArgs(WatcherChangeTypes.All, string.Empty, string.Empty), refresh: true);
+		}
 	}
 
 	private static void OnRecycleBinChanged(object? sender, FileSystemEventArgs e)
@@ -107,6 +122,11 @@ internal static class CatalogWatchers
 	{
 		foreach (var watcher in watchers)
 			watcher.Dispose();
-		recycleBin?.Dispose();
+		lock (recycleBinGate)
+		{
+			stopped = true;
+			recycleBin?.Dispose();
+			recycleBin = null;
+		}
 	}
 }

@@ -32,7 +32,7 @@ internal static class ServerHost
 		OnSettingsChanged();
 	}
 
-	internal static long AddClient(int processId)
+	internal static (long Id, bool CanRestorePreviousSession) AddClient(int processId)
 	{
 		lock (gate)
 		{
@@ -47,8 +47,11 @@ internal static class ServerHost
 				process = Process.GetProcessById(processId);
 				process.Exited += (_, _) => controller.DispatcherQueue.TryEnqueue(() => RemoveClient(id));
 				process.EnableRaisingEvents = true;
+				// Decide under the registration lock so simultaneous launches cannot both restore.
+				var canRestorePreviousSession = clients.Values.All(client => client.Process.HasExited);
 				clients.Add(id, (process, default));
-				return id;
+				RecycleBinCatalog.AddClient(id);
+				return (id, canRestorePreviousSession);
 			}
 			catch
 			{
@@ -93,6 +96,16 @@ internal static class ServerHost
 		controller.DispatcherQueue.TryEnqueue(ExitIfIdle);
 	}
 
+	internal static void BeginPinnedFoldersUpdate(long id)
+	{
+		lock (gate)
+		{
+			if (!clients.ContainsKey(id))
+				throw new ObjectDisposedException(nameof(AppService));
+			ServerEvents.BeginPinnedFoldersUpdate(id);
+		}
+	}
+
 	internal static void RemoveClient(long id)
 	{
 		Process process;
@@ -104,6 +117,7 @@ internal static class ServerHost
 		}
 		process.Dispose();
 		ServerEvents.RemoveClient(id);
+		RecycleBinCatalog.RemoveClient(id);
 		if (!Program.ExitSignal.Task.IsCompleted)
 		{
 			settings.Refresh();
@@ -141,6 +155,8 @@ internal static class ServerHost
 			});
 		}
 	}
+
+	internal static nint GetDialogWindowHandle() => (tray ??= new SystemTrayIcon()).WindowHandle;
 
 	internal static bool ActivateWindow()
 	{
@@ -204,6 +220,7 @@ internal static class ServerHost
 		settings.Dispose();
 		await InvokeAsync(() =>
 		{
+			StartupServices.Stop();
 			tray?.Dispose();
 			tray = null;
 		});

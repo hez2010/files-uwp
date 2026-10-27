@@ -26,7 +26,7 @@ namespace Files.App.Services
 				FilePath = folder.Path,
 				PIDL = folder.Pidl,
 				Properties = new() { ["System.Home.IsPinned"] = folder.IsPinned },
-			});
+			}).ToArray();
 		}
 
 		public Task PinToSidebarAsync(string folderPath) => PinToSidebarAsync(new[] { folderPath });
@@ -242,31 +242,40 @@ namespace Files.App.Services
 			if (desiredItems.SequenceEqual(App.QuickAccessManager.Model.PinnedFolders, StringComparer.OrdinalIgnoreCase))
 				return;
 
-			using (App.QuickAccessManager.Model.SuspendSync())
+			var server = await App.ServerSession;
+			server.BeginPinnedFoldersUpdate();
+			try
 			{
-				var currentPinned = await GetPinnedFolderPathsAsync();
-
-				// Pinning appends, so only items outside the longest in-order prefix need the unpin/repin cycle
-				var stableCount = GetStablePrefixLength(desiredItems, currentPinned);
-				var stableSet = BuildNormalizedPathSet(desiredItems.Take(stableCount));
-				var itemsToUnpin = currentPinned
-					.Where(x => !stableSet.Contains(NormalizeQuickAccessPath(x)))
-					.ToArray();
-
-				if (itemsToUnpin.Length > 0)
+				using (App.QuickAccessManager.Model.SuspendSync())
 				{
-					await UnpinFromSidebarAsync(itemsToUnpin, false);
-					await WaitUntilAsync(async () =>
+					var currentPinned = await GetPinnedFolderPathsAsync();
+
+					// Pinning appends, so only items outside the longest in-order prefix need the unpin/repin cycle
+					var stableCount = GetStablePrefixLength(desiredItems, currentPinned);
+					var stableSet = BuildNormalizedPathSet(desiredItems.Take(stableCount));
+					var itemsToUnpin = currentPinned
+						.Where(x => !stableSet.Contains(NormalizeQuickAccessPath(x)))
+						.ToArray();
+
+					if (itemsToUnpin.Length > 0)
 					{
-						var remainingPinned = BuildNormalizedPathSet(await GetPinnedFolderPathsAsync());
-						return !itemsToUnpin.Any(x => remainingPinned.Contains(NormalizeQuickAccessPath(x)));
-					}, UnpinSettleTimeout);
+						await UnpinFromSidebarAsync(itemsToUnpin, false);
+						await WaitUntilAsync(async () =>
+						{
+							var remainingPinned = BuildNormalizedPathSet(await GetPinnedFolderPathsAsync());
+							return !itemsToUnpin.Any(x => remainingPinned.Contains(NormalizeQuickAccessPath(x)));
+						}, UnpinSettleTimeout);
+					}
+
+					await ReconcilePinsAsync(desiredItems);
 				}
 
-				await ReconcilePinsAsync(desiredItems);
+				await App.QuickAccessManager.Model.LoadAsync();
 			}
-
-			await App.QuickAccessManager.Model.LoadAsync();
+			finally
+			{
+				SafetyExtensions.IgnoreExceptions(server.EndPinnedFoldersUpdate, App.Logger);
+			}
 		}
 	}
 }
